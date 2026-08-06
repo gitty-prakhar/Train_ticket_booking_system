@@ -14,8 +14,10 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "ioredis": "^6.0.0",
     "mongoose": "^9.9.1",
     "nodemailer": "^9.0.4",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "redis": "^6.2.0"
   }
 }
