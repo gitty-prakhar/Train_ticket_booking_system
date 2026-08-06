@@ -20,7 +20,7 @@ const createStation = asyncHandler(async(req,res)=>{
 })
 
 
-const getAllStations = asyncHandler(async (req, res) => {
+const getAllStations = asyncHandler(async(req,res)=>{
     const {search}=req.query;
     const filter={}
     if(search){
@@ -91,3 +91,5 @@ const deleteStation = asyncHandler(async(req,res)=>{
         new APIResponse(200,{},"Station deleted successfully")
     );
 });
+
+export {createStation,getAllStations,getStationByCode,updateStation,deleteStation};
