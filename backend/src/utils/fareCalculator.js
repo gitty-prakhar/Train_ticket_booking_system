@@ -1,6 +1,5 @@
 import ApiError from "./apiError";
 
-
 const FARE_RATES={
     "1A":4.5,
     "2A":2.8,
