@@ -11,7 +11,7 @@ const redis=new Redis({
 const LOCK_TIME=600;
 
 const lockSeat=async(seatId,userId)=>{
-    const result = await redis.set(`seat:lock${seatId}`,userId.toString(),"EX",LOCK_TIME,"NX");
+    const result = await redis.set(`seat:lock:${seatId}`,userId.toString(),"EX",LOCK_TIME,"NX");
     //redis.set(key, value, "EX", seconds, "NX")
     //this means store the data temporarily if it does not exist into the redis for 10 minutes that is 600 seconds
     // it returns either "YES" or "null"
