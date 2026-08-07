@@ -233,8 +233,7 @@ const resetPassword=asyncHandler(async(req,res)=>{
     await user.save({validateBeforeSave:false});
 
     return res.status(200).json(new APIResponse(200,{},"Password reset successfully"));
-
-
 })
+
 
 export {registerUser,loginUser,logoutUser,refreshAccessToken,getCurrentUser,changeCurrentPassword,forgotPassword,resetPassword};
