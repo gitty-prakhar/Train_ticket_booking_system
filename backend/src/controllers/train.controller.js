@@ -31,3 +31,44 @@ const createTrain=asyncHandler(async(req,res)=>{
         new APIResponse(201, { train, route }, "Train created successfully")
     );
 })
+
+const getAllTrains=asyncHandler(async(req,res)=>{
+    const trains=await Train.find({isActive:true}).sort({trainNumber:1});
+    return res.status(200).json(new APIResponse(200,trains,"Trains fetched successfully"));
+});
+
+const getTrainById=asyncHandler(async(req,res)=>{
+    const train=await Train.findById(req.params.id);
+    if(!train){
+        throw new ApiError(404,"Train not found");
+    }
+    const route=await Route.findOne({trainId:train._id }).populate("stops.stationId","name code city");
+    return res.status(200).json(new APIResponse(200,{train,route},"Train fetched successfully"));
+});
+
+
+// UPDATE train
+const updateTrain=asyncHandler(async(req,res)=>{
+    const{trainName,trainType,runningDays,isActive}=req.body;
+    const train=await Train.findByIdAndUpdate(req.params.id,
+        { trainName, trainType, runningDays, isActive },
+        { new: true, runValidators: true }
+    );
+    if(!train){
+        throw new ApiError(404,"Train not found");
+    }
+    return res.status(200).json(new APIResponse(200,train,"Train updated successfully"));
+});
+
+// DELETE train and its route
+const deleteTrain=asyncHandler(async(req,res)=>{
+    const train=await Train.findById(req.params.id);
+    if(!train){
+        throw new ApiError(404,"Train not found");
+    }
+    await Route.findOneAndDelete({trainId:train._id});
+    await Train.findByIdAndDelete(req.params.id);
+    return res.status(200).json(new APIResponse(200,{},"Train deleted successfully"));
+});
+
+export{createTrain,getAllTrains,getTrainById,updateTrain,deleteTrain};
