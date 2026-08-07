@@ -37,7 +37,7 @@ const userSchema=new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        // user can use this money to book tickets also they can add funcds to it
+        // user can use this money to book tickets also they can add funds to it
 
         forgotPasswordOtp: {
             type: String,
