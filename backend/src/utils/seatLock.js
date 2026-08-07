@@ -1,4 +1,4 @@
-import redis from "ioredis";
+import Redis from "ioredis";
 
 // this is basic connection to redis code
 const redis=new Redis({
