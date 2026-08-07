@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js"
 import { asyncHandler } from "../utils/asyncHandler";
 
+//helper function to generate access and refresh token
 const generateAccessAndRefreshToken=async(userID)=>{
     try{
         const user=await User.findById(userID);
@@ -16,7 +17,6 @@ const generateAccessAndRefreshToken=async(userID)=>{
         throw new ApiError(500,"Something went wrong while generating refresh and access token");
     }
 }
-
 
 const registerUser=asyncHandler(async(req,res)=>{
     const {email,username,password}=req.body;
