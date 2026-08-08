@@ -32,6 +32,10 @@ app.use("/api/v1/search",searchRouter);
 app.use("/api/v1/seats",seatRouter);
 app.use("/api/v1/bookings",bookingRouter);
 
+import swaggerUi from "swagger-ui-express";
+import { swaggerDocument } from "./docs/swagger.js";
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 import { errorHandler } from "./middlewares/error.middleware.js";
 app.use(errorHandler);
 export default app;
