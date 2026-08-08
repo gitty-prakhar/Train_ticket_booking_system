@@ -32,14 +32,6 @@ app.use("/api/v1/search",searchRouter);
 app.use("/api/v1/seats",seatRouter);
 app.use("/api/v1/bookings",bookingRouter);
 
-app.use("/api/v1/users",userRouter);
-app.use("/api/v1/stations",stationRouter);
-app.use("/api/v1/trains",trainRouter);
-app.use("/api/v1/schedules",scheduleRouter);
-app.use("/api/v1/search",searchRouter);
-app.use("/api/v1/seats",seatRouter);
-app.use("/api/v1/bookings",bookingRouter);
-
 import { errorHandler } from "./middlewares/error.middleware.js";
 app.use(errorHandler);
 export default app;
