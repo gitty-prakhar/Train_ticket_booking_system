@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
@@ -52,10 +53,14 @@ const createBooking = asyncHandler(async (req, res) => {
     // generate PNR
     const pnr = await generateUniquePNR();
 
+    const paymentId = new mongoose.Types.ObjectId();
+    const bookingId = new mongoose.Types.ObjectId();
+
     // create payment (Pending — Razorpay confirms it later)
     const payment = await Payment.create({
+        _id: paymentId,
         userId:   req.user._id,
-        bookingId: null,
+        bookingId: bookingId,
         amount:   totalFare * 100, // paise
         currency: "INR",
         status:   "Pending",
@@ -66,6 +71,7 @@ const createBooking = asyncHandler(async (req, res) => {
 
     // create booking
     const booking = await Booking.create({
+        _id: bookingId,
         pnr,
         userId:               req.user._id,
         scheduleId,
@@ -79,9 +85,6 @@ const createBooking = asyncHandler(async (req, res) => {
         isTatkal:             isTatkal || false,
         travelDate:           schedule.journeyDate,
     });
-
-    // link payment to booking
-    await Payment.findByIdAndUpdate(payment._id, { bookingId: booking._id });
 
     // mark seats as Booked
     await Seat.updateMany(
