@@ -7,9 +7,9 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 
 //razorpay instance to use the functions
-const razorpay=new Razorpay({
-    key_id:process.env.RAZORPAY_KEY_ID,
-    key_secret:process.env.RAZORPAY_KEY_SECRET
+const razorpay = new Razorpay({
+    key_id:     process.env.RAZORPAY_KEY_ID || "dummy_key_id",
+    key_secret: process.env.RAZORPAY_KEY_SECRET || "dummy_key_secret",
 });
 
 //create razorpay order

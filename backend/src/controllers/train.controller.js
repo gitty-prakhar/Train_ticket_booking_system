@@ -1,7 +1,8 @@
 import { Train } from "../models/train.model.js";
 import { Route } from "../models/route.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import ApiError from "../utils/apiError.js";
+import { ApiError } from "../utils/apiError.js";
+import { APIResponse } from "../utils/apiResponse.js";
 
 const createTrain=asyncHandler(async(req,res)=>{
     const {trainNumber,trainName,trainType,runningDays,stops}=req.body;

@@ -1,8 +1,14 @@
+import dotenv from "dotenv";
+dotenv.config({path:'./.env'});
+
 import connectDB from "./db/index.js";
 import app from "./app.js";
-import dotenv from "dotenv";
 
-dotenv.config({path:'./.env'});
+// Initialize Queues and Workers
+import "./queues/emailQueue.js";
+import "./queues/waitlistQueue.js";
+import "./workers/emailWorker.js";
+import "./workers/waitlistWorker.js";
 
 connectDB()
 .then(()=>{
