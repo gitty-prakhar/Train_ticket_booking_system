@@ -1,9 +1,9 @@
-import ApiError from "../utils/apiError.js";
+import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
-export const verifyJWT=asyncHandler(async(req,_,res)=>{
+const verifyJWT=asyncHandler(async(req,res,next)=>{
     try{
         const token=req.cookies.accessToken||req.header("Authorization").replace("Bearer ","");
         if(!token){
@@ -23,11 +23,13 @@ export const verifyJWT=asyncHandler(async(req,_,res)=>{
     }
 })
 
-export const verifyAdmin=(req,res,next)=>{
-    if(req.user&&req.user.role==="admin"){
+export const verifyRole = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            throw new ApiError(403, "Access denied. Insufficient permissions.");
+        }
         next();
-    }
-    else{
-        throw new ApiError(403,"Access denied.Admins only.");
-    }
-}
+    };
+};
+
+export { verifyJWT };
