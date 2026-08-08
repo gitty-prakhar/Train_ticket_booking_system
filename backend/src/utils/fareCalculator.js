@@ -1,4 +1,4 @@
-import ApiError from "./apiError";
+import { ApiError } from "./apiError.js";
 
 const FARE_RATES={
     "1A":4.5,
