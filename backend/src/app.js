@@ -1,18 +1,40 @@
-import express from "express";
-import cors from "cors"
-import cookieParser from "cookie-parser"
+import express        from "express";
+import cors           from "cors";
+import cookieParser   from "cookie-parser";
+import compression    from "compression";
+import helmet         from "helmet";
+import morgan         from "morgan";
+import mongoSanitize  from "express-mongo-sanitize";
+import xss            from "xss-clean";
+import hpp            from "hpp";
 
-const app=express();
+const app = express();
 
+// 1. Compress all responses (must be first)
+app.use(compression());
+
+// 2. Set secure HTTP headers
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+// 3. Log incoming requests in dev
+app.use(morgan("dev"));
+
+// 4. CORS
 app.use(
     cors({
-        origin:process.env.CORS_ORIGIN||"*",
-        credentials:true,
+        origin: [process.env.CORS_ORIGIN || "http://localhost:5173", "http://localhost:5173"],
+        credentials: true,
     })
-)
+);
 
-app.use(express.json({limit:"16kb"}));
-app.use(express.urlencoded({extended:true,limit:"16kb"}));
+// 5. Parse body
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+
+// 6. Sanitize parsed body — must come after express.json()
+app.use(mongoSanitize());   // prevent NoSQL injection ($, .)
+app.use(xss());             // strip <script> tags from inputs
+app.use(hpp());             // block duplicate query params
 
 app.use(cookieParser());
 
