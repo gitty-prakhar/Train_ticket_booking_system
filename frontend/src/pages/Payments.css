@@ -1,0 +1,70 @@
+.payments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.payment-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.p-card-header {
+    background: rgba(0,0,0,0.4);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.p-transaction-id {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.p-card-body {
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+}
+
+.p-amount {
+    flex: 0 0 150px;
+}
+.p-amount h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 4px;
+}
+
+.p-details {
+    flex: 1;
+    align-items: center;
+}
+
+.label {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.p-details a {
+    color: var(--accent);
+    text-decoration: none;
+}
+.p-details a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .p-card-body { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .p-details { width: 100%; grid-template-columns: 1fr; gap: 16px; }
+}

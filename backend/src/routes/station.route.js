@@ -6,7 +6,7 @@ import { verifyRole } from "../middlewares/auth.middleware.js";
 const router=Router();
 
 router.route("/").get(getAllStations);
-router.route("/:").get(getStationByCode);
+router.route("/:code").get(getStationByCode);
 
 //secured routes
 router.route("/").post(verifyJWT,verifyRole("admin"),createStation);

@@ -1,239 +1,285 @@
-import { User } from "../models/user.model.js"
-import { asyncHandler } from "../utils/asyncHandler";
+import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
+import { sendEmail } from "../utils/sendEmail.js";
+import { ApiError } from "../utils/apiError.js";
+import { APIResponse } from "../utils/apiResponse.js";
 
-//helper function to generate access and refresh token
-const generateAccessAndRefreshToken=async(userID)=>{
-    try{
-        const user=await User.findById(userID);
-        const accessToken=user.generateAccessToken();
-        const refreshToken =user.generateRefreshToken();
-
-        user.refreshToken=refreshToken;
-
-        await user.save({validateBeforeSave:false});
-        return {accessToken,refreshToken};
+// ─── Helper: Generate Tokens ──────────────────────────────
+const generateAccessAndRefreshTokens = async (userID) => {
+    try {
+        const user = await User.findById(userID);
+        const accessToken  = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+        user.refreshToken  = refreshToken;
+        await user.save({ validateBeforeSave: false });
+        return { accessToken, refreshToken };
+    } catch (err) {
+        console.error("Token Generation Error:", err);
+        throw new ApiError(500, "Something went wrong while generating tokens");
     }
-    catch(err){
-        throw new ApiError(500,"Something went wrong while generating refresh and access token");
-    }
-}
+};
 
-const registerUser=asyncHandler(async(req,res)=>{
-    const {email,username,password}=req.body;
-    if(!email || !username || !password){
-        throw new ApiError(400,"All fields are required\n");
+// ─── REGISTER: Step 1 — Send OTP, don't confirm yet ────────
+const registerUser = asyncHandler(async (req, res) => {
+    const { email, username, password } = req.body;
+
+    if (!email || !username || !password) {
+        throw new ApiError(400, "All fields are required");
     }
-    const existedUser=await User.findOne({
-        $or:[{username},{email}]
+    if (password.length < 8) {
+        throw new ApiError(400, "Password must be at least 8 characters");
+    }
+
+    // Check if a fully-verified user already exists with same email/username
+    const existingVerified = await User.findOne({
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
+        isVerified: true,
     });
-    if(existedUser){
-        throw new ApiError(400,"User already exists\n");
-    }
-    const user=await User.create({
-        email,password,username:username.toLowerCase()
-    });
-    const createdUser=await User.find(user._id).select("-password -refreshToken");
-    if(!createdUser){
-        throw new ApiError(500,"Something went wrong while creating the user\n");
-    }
-    return res.status(201).json(
-        new APIResponse(200,createdUser,"User created successfully")
-    );
-})
-
-const loginUser=asyncHandler(async(req,res)=>{
-    const {username,email,password}= req.body;
-    if(!email && !username){
-        throw new ApiError(400,"Username or email is required");
+    if (existingVerified) {
+        throw new ApiError(409, "An account with this email or username already exists");
     }
 
-    const user=await User.findOne({
-        $or:[{username},{email}]
+    const otp        = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry  = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Upsert: update unverified account or create new one
+    let user = await User.findOne({
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
+        isVerified: false,
     });
 
-    if(!user){
-        throw new ApiError(404,"User does not exist");
+    if (user) {
+        // Update existing unverified user's password + new OTP
+        user.password             = password; // will be hashed by pre-save hook
+        user.verificationOtp      = otp;
+        user.verificationOtpExpiry = otpExpiry;
+        await user.save();
+    } else {
+        // Create fresh unverified user
+        user = await User.create({
+            email:                email.toLowerCase(),
+            username:             username.toLowerCase(),
+            password,
+            isVerified:           false,
+            verificationOtp:      otp,
+            verificationOtpExpiry: otpExpiry,
+        });
     }
 
-    const isPasswordCorrect=await user.isPasswordCorrect(password);
-
-    if(!isPasswordCorrect){
-        throw new ApiError(401,"Invalid user credentials");
+    // Send OTP email
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: "IRCTC — Verify Your Email",
+            message: `Welcome to IRCTC!\n\nYour registration OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
+        });
+    } catch (err) {
+        // If email fails, delete the user so they can try again
+        await User.findByIdAndDelete(user._id);
+        throw new ApiError(500, "Failed to send OTP email. Please try again.");
     }
 
-    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
-
-    const loggedInUser= await User.findById(user._id).select("-password -refreshToken");
-
-    const options={
-        httpOnly:true,//javascript running in the browser cannot read this cookie
-        secure:true     //send cookie only over https not http
-    };
-    //these options tell the browser how to store the cookie
-
-    return res.status(200)
-    .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",refreshToken,options)
-    .json(
-        new APIResponse(200,
-            {
-                user:loggedInUser,
-                accessToken,
-                refreshToken
-            },
-            "User logged in successfully"
-        )
-    );
-    //after user logins the backend sends two cookies accesToken and refreshToken to browser
-})
-
-const logoutUser=asyncHandler(async(req,res)=>{
-    await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set:{
-                refreshToken:undefined
-            }
-        },
-        {
-            new:true    //it tells the mongoose to return the updated one instead of the old one
-        }
-    );
-    //first remove refreshToken from the database
-    const options={
-        httpOnly:true,
-        secure:true
-    }
-
-    //clear cookies from the browser
-    return res.status(200)
-    .clearCookie("accessToken",options)
-    .clearCookie("refreshToken",options)
-    .json(new APIResponse(200,{},"User Logged out\n"));
-})
-
-const refreshAccessToken=asyncHandler(async(req,res)=>{
-    const incomingToken=req.cookies.refreshToken||req.body.refreshToken;
-    if(!incomingToken){
-        throw new ApiError(401,"Unauthorised Request\n");
-    }
-    try{
-        const decodedToken=jwt.verify(incomingToken,process.env.REFRESH_TOKEN_SECRET);
-        const user=await User.findById(decodedToken?._id);
-        if(!user){
-            throw new ApiError(401,"Invalid refresh token\n");
-        }
-
-        if(incomingToken !== user?.refreshToken){
-            throw new ApiError(401,"Refesh token is expired");
-        }
-        const options={
-            httpOnly:true,
-            secure:true
-        }
-        const {accessToken,refreshToken:newRefreshToken}=await generateAccessAndRefreshTokens(user._id);
-        return res
-        .status(200)
-        .cookie("accessToken",accessToken,options)
-        .cookie("refreshToken",newRefreshToken,options)
-        .json(
-            new APIResponse(200,{accessToken,refreshToken:newRefreshToken},"Access Token refreshed")
-        );
-    } 
-    catch(error){
-        throw new ApiError(401,error.message||"Invalid Refresh Token");
-    }
-})
-
-const getCurrentUser=asyncHandler(async(req,res)=>{
     return res.status(200).json(
-        new APIResponse(
-            200, 
-            req.user, 
-            "Current user fetched successfully"
-        )
+        new APIResponse(200, { email: user.email }, "OTP sent to your email. Please verify to complete registration.")
     );
 });
 
-const changeCurrentPassword=asyncHandler(async(req,res)=>{
+// ─── VERIFY REGISTRATION: Step 2 — Activate account ───────
+const verifyRegistration = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
 
-    const {oldPassword,newPassword}=req.body;
-    if (!oldPassword||!newPassword){
-        throw new ApiError(400, "Both old and new password are required");
-    }
-    const user=await User.findById(req.user?._id);
-    const isPasswordValid = await user.isPasswordCorrect(oldPassword);
-    if(!isPasswordValid) {
-        throw new ApiError(400,"Invalid old password");
-    }
-    user.password=newPassword;
-    await user.save({validateBeforeSave:false})
-    return res.status(200).json(new APIResponse(200,{},"Password changed successfully"));
-
-})
-
-const forgotPassword=asyncHandler(async (req,res)=>{
-    const {email}=req.body;
-    if(!email){
-        throw new ApiError(400,"Email not found");
-    }
-    const user = await User.findOne({email});
-
-    if(!user){
-        throw new ApiError(404,"User not found");
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP are required");
     }
 
-    const otp=Math.floor(100000+Math.random()*900000).toString();
+    const user = await User.findOne({
+        email:           email.toLowerCase(),
+        verificationOtp: otp.toString(),
+        isVerified:      false,
+    });
 
-    user.forgotPasswordOtp=otp;
-    user.forgotPasswordOtpExpiry=Date.now()+15*60*1000;
+    if (!user) {
+        throw new ApiError(400, "Invalid OTP or email. Please register again.");
+    }
 
-    await user.save({validateBeforeSave:false});
+    if (user.verificationOtpExpiry < new Date()) {
+        // Cleanup expired user
+        await User.findByIdAndDelete(user._id);
+        throw new ApiError(400, "OTP has expired. Please register again.");
+    }
 
-    const message=`Your password reset OTP is: ${otp}.It is valid for 15 minutes.`;
-    
-    try{
+    user.isVerified            = true;
+    user.verificationOtp       = null;
+    user.verificationOtpExpiry = null;
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(
+        new APIResponse(200, {}, "Email verified! Your account is now active. Please login.")
+    );
+});
+
+// ─── LOGIN ─────────────────────────────────────────────────
+const loginUser = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!email && !username) {
+        throw new ApiError(400, "Username or email is required");
+    }
+    if (!password) {
+        throw new ApiError(400, "Password is required");
+    }
+
+    const user = await User.findOne({
+        $or: [
+            ...(email    ? [{ email:    email.toLowerCase()    }] : []),
+            ...(username ? [{ username: username.toLowerCase() }] : []),
+        ],
+    }).select("+password +refreshToken");
+
+    if (!user) {
+        throw new ApiError(404, "No account found with this email or username");
+    }
+
+    // Block unverified users
+    if (!user.isVerified) {
+        throw new ApiError(403, "Please verify your email before logging in. Check your inbox for the OTP.");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "Invalid password");
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure:   false, // set to true in production (HTTPS)
+        sameSite: "lax",
+    };
+
+    return res
+        .status(200)
+        .cookie("accessToken",  accessToken,  cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions)
+        .json(new APIResponse(200, { user: loggedInUser, accessToken, refreshToken }, "User logged in successfully"));
+});
+
+// ─── LOGOUT ────────────────────────────────────────────────
+const logoutUser = asyncHandler(async (req, res) => {
+    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
+
+    const cookieOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+
+    return res
+        .status(200)
+        .clearCookie("accessToken",  cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
+        .json(new APIResponse(200, {}, "Logged out successfully"));
+});
+
+// ─── REFRESH ACCESS TOKEN ───────────────────────────────────
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingToken = req.cookies.refreshToken || req.body.refreshToken;
+    if (!incomingToken) throw new ApiError(401, "Unauthorized request");
+
+    try {
+        const decoded = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
+        const user    = await User.findById(decoded?._id).select("+refreshToken");
+        if (!user) throw new ApiError(401, "Invalid refresh token");
+        if (incomingToken !== user.refreshToken) throw new ApiError(401, "Refresh token is expired or used");
+
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
+        const cookieOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+
+        return res
+            .status(200)
+            .cookie("accessToken",  accessToken,     cookieOptions)
+            .cookie("refreshToken", newRefreshToken, cookieOptions)
+            .json(new APIResponse(200, { accessToken, refreshToken: newRefreshToken }, "Access token refreshed"));
+    } catch (error) {
+        throw new ApiError(401, error.message || "Invalid refresh token");
+    }
+});
+
+// ─── GET CURRENT USER ──────────────────────────────────────
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res.status(200).json(new APIResponse(200, req.user, "Current user fetched successfully"));
+});
+
+// ─── CHANGE PASSWORD ───────────────────────────────────────
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) throw new ApiError(400, "Both old and new passwords are required");
+    if (newPassword.length < 8)       throw new ApiError(400, "New password must be at least 8 characters");
+
+    const user = await User.findById(req.user._id).select("+password");
+    if (!await user.isPasswordCorrect(oldPassword)) throw new ApiError(400, "Old password is incorrect");
+
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new APIResponse(200, {}, "Password changed successfully"));
+});
+
+// ─── FORGOT PASSWORD ───────────────────────────────────────
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) throw new ApiError(400, "Email is required");
+
+    const user = await User.findOne({ email: email.toLowerCase(), isVerified: true });
+    if (!user) throw new ApiError(404, "No verified account found with this email");
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.forgotPasswordOtp       = otp;
+    user.forgotPasswordOtpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    try {
         await sendEmail({
-            email:user.email,
-            subject:"Password Reset OTP",
-            message:message
+            email:   user.email,
+            subject: "IRCTC — Password Reset OTP",
+            message: `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
         });
-        return res.status(200).json(new APIResponse(200,{},"OTP sent to email"));
-    } 
-    catch(error){
-        user.forgotPasswordOtp = undefined;
+        return res.status(200).json(new APIResponse(200, {}, "OTP sent to your email"));
+    } catch (err) {
+        user.forgotPasswordOtp       = undefined;
         user.forgotPasswordOtpExpiry = undefined;
-        await user.save({validateBeforeSave:false});
-        throw new ApiError(500,"Failed to send email. Please try again.");
+        await user.save({ validateBeforeSave: false });
+        throw new ApiError(500, "Failed to send OTP email. Please try again.");
     }
+});
 
-})
+// ─── RESET PASSWORD ────────────────────────────────────────
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp, newPassword } = req.body;
 
-const resetPassword=asyncHandler(async(req,res)=>{
-    const {email,otp,newPassword}=req.body;
+    if (!email || !otp || !newPassword) throw new ApiError(400, "All fields are required");
+    if (newPassword.length < 8)         throw new ApiError(400, "New password must be at least 8 characters");
 
-    if(!email || !otp || !newPassword){
-        throw new ApiError(400,"Invalid credentials");
-    }
+    const user = await User.findOne({ email: email.toLowerCase(), forgotPasswordOtp: otp });
+    if (!user) throw new ApiError(400, "Invalid OTP or email");
+    if (user.forgotPasswordOtpExpiry < new Date()) throw new ApiError(400, "OTP has expired");
 
-    const user=await User.findOne({email,forgotPasswordOtp:otp});
+    user.password                = newPassword;
+    user.forgotPasswordOtp       = undefined;
+    user.forgotPasswordOtpExpiry = undefined;
+    await user.save({ validateBeforeSave: false });
 
-    if(!user){
-        throw new ApiError(400,"Invalid OTP or email")
-    }
+    return res.status(200).json(new APIResponse(200, {}, "Password reset successfully"));
+});
 
-    if(user.forgotPasswordOtpExpiry<Date.now()){
-        throw new ApiError(400,"OTP has expired");
-    }
-
-    user.password=newPassword;
-    user.forgotPasswordOtp=undefined;
-    user.forgotPasswordOtpExpiry=undefined;
-
-    await user.save({validateBeforeSave:false});
-
-    return res.status(200).json(new APIResponse(200,{},"Password reset successfully"));
-})
-
-
-export {registerUser,loginUser,logoutUser,refreshAccessToken,getCurrentUser,changeCurrentPassword,forgotPassword,resetPassword};
+export {
+    registerUser,
+    verifyRegistration,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    getCurrentUser,
+    changeCurrentPassword,
+    forgotPassword,
+    resetPassword,
+};

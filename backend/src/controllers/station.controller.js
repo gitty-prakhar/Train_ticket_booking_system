@@ -1,5 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Station } from "../models/station.model.js";
+import { ApiError } from "../utils/apiError.js";
+import { APIResponse } from "../utils/apiResponse.js";
 
 const createStation = asyncHandler(async(req,res)=>{
     const {name,code,city,state,zone}=req.body;
@@ -22,7 +24,7 @@ const createStation = asyncHandler(async(req,res)=>{
 
 const getAllStations = asyncHandler(async(req,res)=>{
     const {search}=req.query;
-    const filter={}
+    let filter={}
     if(search){
         filter={
             $or:[

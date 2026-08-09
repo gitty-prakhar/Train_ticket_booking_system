@@ -14,29 +14,15 @@ import { calculateTotalFare, getDistanceBetweenStops } from "../utils/fareCalcul
 
 // CREATE booking
 const createBooking = asyncHandler(async (req, res) => {
-    const { scheduleId, coachType, boardingStationId, destinationStationId, seatIds, passengers, isTatkal } = req.body;
+    const { scheduleId, coachType, boardingStationId, destinationStationId, passengers, isTatkal } = req.body;
+    let { seatIds } = req.body;
 
-    if (!scheduleId || !coachType || !boardingStationId || !destinationStationId || !seatIds || !passengers) {
+    if (!scheduleId || !coachType || !boardingStationId || !destinationStationId || !passengers) {
         throw new ApiError(400, "All fields are required");
-    }
-
-    if (passengers.length !== seatIds.length) {
-        throw new ApiError(400, "Each passenger must have one seat");
     }
 
     if (passengers.length > 6) {
         throw new ApiError(400, "Maximum 6 passengers per booking");
-    }
-
-    // verify Redis lock belongs to this user
-    for (const seatId of seatIds) {
-        const lockOwner = await getSeatLockOwner(seatId);
-        if (!lockOwner) {
-            throw new ApiError(409, "Seat lock expired. Please re-select seats.");
-        }
-        if (lockOwner !== req.user._id.toString()) {
-            throw new ApiError(403, "You do not hold the lock on this seat.");
-        }
     }
 
     const schedule = await Schedule.findById(scheduleId);
@@ -45,6 +31,30 @@ const createBooking = asyncHandler(async (req, res) => {
 
     const route = await Route.findById(schedule.routeId);
     if (!route) throw new ApiError(404, "Route not found");
+
+    // Auto-assign seats if not provided (frontend flow)
+    if (!seatIds || seatIds.length === 0) {
+        const availableSeats = await Seat.find({
+            scheduleId,
+            status: "Available",
+            coachId: { $in: await Coach.find({ scheduleId, coachType }).distinct("_id") },
+        }).limit(passengers.length);
+
+        if (availableSeats.length < passengers.length) {
+            throw new ApiError(409, `Only ${availableSeats.length} seats available in ${coachType}. Please reduce passengers.`);
+        }
+        seatIds = availableSeats.map(s => s._id.toString());
+    } else {
+        // Manual seat selection: verify Redis locks
+        if (passengers.length !== seatIds.length) {
+            throw new ApiError(400, "Each passenger must have one seat");
+        }
+        for (const seatId of seatIds) {
+            const lockOwner = await getSeatLockOwner(seatId);
+            if (!lockOwner) throw new ApiError(409, "Seat lock expired. Please re-select seats.");
+            if (lockOwner !== req.user._id.toString()) throw new ApiError(403, "You do not hold the lock on this seat.");
+        }
+    }
 
     // calculate fare
     const distanceKm = getDistanceBetweenStops(route.stops, boardingStationId, destinationStationId);
@@ -59,11 +69,11 @@ const createBooking = asyncHandler(async (req, res) => {
     // create payment (Pending — Razorpay confirms it later)
     const payment = await Payment.create({
         _id: paymentId,
-        userId:   req.user._id,
+        userId:    req.user._id,
         bookingId: bookingId,
-        amount:   totalFare * 100, // paise
-        currency: "INR",
-        status:   "Pending",
+        amount:    totalFare * 100,
+        currency:  "INR",
+        status:    "Pending",
     });
 
     // attach seatId to each passenger
@@ -98,15 +108,16 @@ const createBooking = asyncHandler(async (req, res) => {
         { $inc: { availableSeats: -passengers.length } }
     );
 
-    // release Redis locks
+    // release Redis locks (only if they were manually locked)
     for (const seatId of seatIds) {
-        await releaseSeatLock(seatId);
+        await releaseSeatLock(seatId).catch(() => {});
     }
 
     return res.status(201).json(
         new APIResponse(201, booking, `Booking confirmed! Your PNR is ${pnr}`)
     );
 });
+
 
 // GET booking by PNR
 const getBookingByPNR = asyncHandler(async (req, res) => {

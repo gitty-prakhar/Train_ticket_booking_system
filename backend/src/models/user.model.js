@@ -37,7 +37,20 @@ const userSchema=new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        // user can use this money to book tickets also they can add funds to it
+
+        // Email verification (2FA registration)
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+        verificationOtp: {
+            type: String,
+            default: null,
+        },
+        verificationOtpExpiry: {
+            type: Date,
+            default: null,
+        },
 
         forgotPasswordOtp: {
             type: String,
@@ -55,9 +68,9 @@ const userSchema=new mongoose.Schema(
     { timestamps: true }
 );
 
-userSchema.pre("save",async function(next){
-    if(!this.isModified("password"))return next();
-    this.password=await bcrypt.hash(this.password,10);
+userSchema.pre("save", async function() {
+    if (!this.isModified("password")) return;
+    this.password = await bcrypt.hash(this.password, 10);
 });
 
 userSchema.methods.isPasswordCorrect=async function(password){
