@@ -1,7 +1,7 @@
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
-import { sendEmail } from "../utils/sendEmail.js";
+import { emailQueue } from "../queues/emailQueue.js";
 import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
 
@@ -67,17 +67,17 @@ const registerUser = asyncHandler(async (req, res) => {
         });
     }
 
-    // Send OTP email
+    // Send OTP email asynchronously using BullMQ
     try {
-        await sendEmail({
+        await emailQueue.add("sendOTP", {
             email: user.email,
             subject: "IRCTC — Verify Your Email",
             message: `Welcome to IRCTC!\n\nYour registration OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
         });
     } catch (err) {
-        // If email fails, delete the user so they can try again
+        // If adding to queue fails, delete the user so they can try again
         await User.findByIdAndDelete(user._id);
-        throw new ApiError(500, "Failed to send OTP email. Please try again.");
+        throw new ApiError(500, "Failed to queue OTP email. Please try again.");
     }
 
     return res.status(200).json(
@@ -156,8 +156,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const cookieOptions = {
         httpOnly: true,
-        secure:   false, // set to true in production (HTTPS)
-        sameSite: "lax",
+        secure:   process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     };
 
     return res
@@ -171,7 +171,11 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
 
-    const cookieOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+    const cookieOptions = { 
+        httpOnly: true, 
+        secure:   process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
 
     return res
         .status(200)
@@ -192,7 +196,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         if (incomingToken !== user.refreshToken) throw new ApiError(401, "Refresh token is expired or used");
 
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
-        const cookieOptions = { httpOnly: true, secure: false, sameSite: "lax" };
+        const cookieOptions = { 
+            httpOnly: true, 
+            secure:   process.env.NODE_ENV === "production" ? true : false,
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        };
 
         return res
             .status(200)
@@ -239,7 +247,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     try {
-        await sendEmail({
+        await emailQueue.add("sendPasswordReset", {
             email:   user.email,
             subject: "IRCTC — Password Reset OTP",
             message: `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
@@ -249,7 +257,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
         user.forgotPasswordOtp       = undefined;
         user.forgotPasswordOtpExpiry = undefined;
         await user.save({ validateBeforeSave: false });
-        throw new ApiError(500, "Failed to send OTP email. Please try again.");
+        throw new ApiError(500, "Failed to queue OTP email. Please try again.");
     }
 });
 
