@@ -89,8 +89,8 @@ export default function AdminDashboard() {
                 trainType: trainForm.trainType,
                 runningDays: [0, 1, 2, 3, 4, 5, 6],
                 stops: [
-                    { stationId: trainForm.sourceStationId, arrivalTime: trainForm.sourceDeparture, departureTime: trainForm.sourceDeparture, stopNumber: 1 },
-                    { stationId: trainForm.destStationId, arrivalTime: trainForm.destArrival, departureTime: trainForm.destArrival, stopNumber: 2 }
+                    { stationId: trainForm.sourceStationId, arrivalTime: trainForm.sourceDeparture, departureTime: trainForm.sourceDeparture, stopNumber: 1, distanceFromOrigin: 0 },
+                    { stationId: trainForm.destStationId, arrivalTime: trainForm.destArrival, departureTime: trainForm.destArrival, stopNumber: 2, distanceFromOrigin: 500 }
                 ]
             };
             if (trainEditId) {
