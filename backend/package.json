@@ -31,7 +31,6 @@
   },
   "dependencies": {
     "compression": "^1.8.1",
-    "express-mongo-sanitize": "^2.2.0",
     "morgan": "^1.11.0",
     "rate-limit-redis": "^6.0.1"
   }

@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import helmet from "helmet";
 import morgan from "morgan";
-import mongoSanitize from "express-mongo-sanitize";
 
 const app = express();
 
@@ -28,9 +27,6 @@ app.use(
 // 5. Parse body
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
-
-// 6. Sanitize parsed body — must come after express.json()
-app.use(mongoSanitize());   // prevent NoSQL injection ($, .)
 
 app.use(cookieParser());
 
