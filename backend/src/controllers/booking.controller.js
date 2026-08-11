@@ -103,11 +103,15 @@ const createBooking = asyncHandler(async (req, res) => {
         { status: "Booked", bookedBy: booking._id, lockedBy: null, lockExpiresAt: null }
     );
 
-    // reduce available seats on coach
-    await Coach.updateMany(
-        { scheduleId, coachType },
-        { $inc: { availableSeats: -passengers.length } }
-    );
+    // reduce available seats on specific coaches
+    const bookedSeats = await Seat.find({ _id: { $in: seatIds } });
+    const coachCounts = {};
+    for (const seat of bookedSeats) {
+        coachCounts[seat.coachId] = (coachCounts[seat.coachId] || 0) + 1;
+    }
+    for (const coachId in coachCounts) {
+        await Coach.findByIdAndUpdate(coachId, { $inc: { availableSeats: -coachCounts[coachId] } });
+    }
 
     // release Redis locks (only if they were manually locked)
     for (const seatId of seatIds) {
@@ -196,11 +200,15 @@ const cancelBooking = asyncHandler(async (req, res) => {
     const seatIds = booking.passengers.filter(p => p.seatId).map(p => p.seatId);
     await Seat.updateMany({ _id: { $in: seatIds } }, { status: "Available", bookedBy: null });
 
-    // increase available seats
-    await Coach.updateMany(
-        { scheduleId: booking.scheduleId, coachType: booking.coachType },
-        { $inc: { availableSeats: seatIds.length } }
-    );
+    // increase available seats on specific coaches
+    const bookedSeats = await Seat.find({ _id: { $in: seatIds } });
+    const coachCounts = {};
+    for (const seat of bookedSeats) {
+        coachCounts[seat.coachId] = (coachCounts[seat.coachId] || 0) + 1;
+    }
+    for (const coachId in coachCounts) {
+        await Coach.findByIdAndUpdate(coachId, { $inc: { availableSeats: coachCounts[coachId] } });
+    }
 
     // update payment
     if (refundAmount > 0) {

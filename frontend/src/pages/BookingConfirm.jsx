@@ -58,7 +58,12 @@ export default function BookingConfirm() {
         setPassengers(newP);
     };
 
-    const totalFare = passengers.length * state.farePerPerson;
+    const totalFare = passengers.reduce((total, p) => {
+        const age = Number(p.age) || 25;
+        if (age < 5) return total;
+        if (age >= 5 && age <= 12) return total + Math.max(Math.round(state.farePerPerson / 2), 30);
+        return total + state.farePerPerson;
+    }, 0);
 
     const handleConfirmBooking = async () => {
         if (!boardingStationId || !destinationStationId) {
@@ -181,7 +186,7 @@ export default function BookingConfirm() {
                             <h3>Fare Summary</h3>
                             
                             <div className="fare-row">
-                                <span>Ticket Fare ({passengers.length} × ₹{state.farePerPerson})</span>
+                                <span>Ticket Fare ({passengers.length} Passenger{passengers.length > 1 ? 's' : ''})</span>
                                 <span>₹{totalFare.toLocaleString("en-IN")}</span>
                             </div>
                             <div className="fare-row text-success">
