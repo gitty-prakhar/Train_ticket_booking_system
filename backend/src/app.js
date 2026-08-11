@@ -16,10 +16,13 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 // 3. Log incoming requests in dev
 app.use(morgan("dev"));
 
-// 4. CORS
 app.use(
     cors({
-        origin: [process.env.CORS_ORIGIN || "http://localhost:5173", "http://localhost:5173"],
+        origin: [
+            process.env.CORS_ORIGIN || "http://localhost:5173", 
+            "http://localhost:5173",
+            "https://train-ticket-booking-system-peach.vercel.app"
+        ],
         credentials: true,
     })
 );
