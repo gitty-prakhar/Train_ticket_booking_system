@@ -33,6 +33,9 @@ const createBooking = asyncHandler(async (req, res) => {
     const route = await Route.findById(schedule.routeId);
     if (!route) throw new ApiError(404, "Route not found");
 
+    const boardingStation = await Station.findById(boardingStationId);
+    const destStation = await Station.findById(destinationStationId);
+
     // Auto-assign seats if not provided (frontend flow)
     if (!seatIds || seatIds.length === 0) {
         const availableSeats = await Seat.find({
@@ -120,10 +123,13 @@ const createBooking = asyncHandler(async (req, res) => {
 
     // Send E-Ticket Email asynchronously
     try {
+        const boardingName = boardingStation ? boardingStation.name : "Boarding Station";
+        const destName = destStation ? destStation.name : "Destination Station";
+        
         await emailQueue.add("sendTicket", {
             email: req.user.email,
             subject: `IRCTC — E-Ticket Confirmed (PNR: ${pnr})`,
-            message: `Hello ${req.user.username},\n\nYour train ticket has been confirmed!\n\nPNR: ${pnr}\nTrain Route: ${boardingStationId} to ${destinationStationId}\nTravel Date: ${new Date(schedule.journeyDate).toLocaleDateString()}\nTotal Fare: ₹${totalFare}\n\nHave a safe journey!\n- IRCTC Team`,
+            message: `Hello ${req.user.username},\n\nYour train ticket has been confirmed!\n\nPNR: ${pnr}\nTrain Route: ${boardingName} to ${destName}\nTravel Date: ${new Date(schedule.journeyDate).toLocaleDateString()}\nTotal Fare: ₹${totalFare}\n\nHave a safe journey!\n- IRCTC Team`,
         });
     } catch (err) {
         console.error("Failed to queue booking email:", err);
