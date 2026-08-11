@@ -5,7 +5,6 @@ import compression from "compression";
 import helmet from "helmet";
 import morgan from "morgan";
 import mongoSanitize from "express-mongo-sanitize";
-import xss from "xss-clean";
 
 const app = express();
 
@@ -32,7 +31,6 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
 // 6. Sanitize parsed body — must come after express.json()
 app.use(mongoSanitize());   // prevent NoSQL injection ($, .)
-app.use(xss());             // strip <script> tags from inputs
 
 app.use(cookieParser());
 
