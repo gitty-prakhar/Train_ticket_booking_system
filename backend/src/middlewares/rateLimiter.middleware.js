@@ -3,12 +3,9 @@ import { RedisStore } from "rate-limit-redis";
 import Redis from "ioredis";
 
 //create a dedicated Redis connection for the rate limiter
-const redisClient=new Redis({
-    host: process.env.REDIS_HOST||"127.0.0.1",
-    port: process.env.REDIS_PORT||6379,
-    //required by rate-limit-redis
-    enableOfflineQueue:false,
-});
+const redisClient = process.env.REDIS_URL 
+    ? new Redis(process.env.REDIS_URL, { enableOfflineQueue: false }) 
+    : new Redis({ host: "127.0.0.1", port: 6379, enableOfflineQueue: false });
 
 export const tatkalRateLimiter=rateLimit({
     windowMs:60*1000, //1 minute window

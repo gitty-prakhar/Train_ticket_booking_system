@@ -1,11 +1,13 @@
 import Redis from "ioredis";
 
 // this is basic connection to redis code
-const redis=new Redis({
-    host:process.env.REDIS_HOST||"127.0.0.1",
-    port: process.env.REDIS_PORT||6379,
-    maxRetriesPerRequest:null,
-});
+const redis = process.env.REDIS_URL 
+    ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+    : new Redis({
+        host: "127.0.0.1",
+        port: 6379,
+        maxRetriesPerRequest: null,
+    });
 
 
 const LOCK_TIME=600;
