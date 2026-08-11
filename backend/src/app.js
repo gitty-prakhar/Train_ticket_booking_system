@@ -62,6 +62,11 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./docs/swagger.js";
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Health check route for Render
+app.get("/", (req, res) => {
+    res.status(200).json({ success: true, message: "IRCTC Backend is running perfectly!" });
+});
+
 import { errorHandler } from "./middlewares/error.middleware.js";
 app.use(errorHandler);
 export default app;
