@@ -34,7 +34,7 @@ async function buildClassMap(scheduleId, distanceKm) {
                 coachType:      coach.coachType,
                 availableSeats: 0,
                 totalSeats:     0,
-                farePerPerson:  distanceKm ? calculateFare(distanceKm, coach.coachType) : 0,
+                farePerPerson:  calculateFare(distanceKm || 0, coach.coachType),
             };
         }
         classMap[coach.coachType].availableSeats += coach.availableSeats;
