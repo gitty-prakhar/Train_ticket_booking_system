@@ -1,12 +1,12 @@
-import express        from "express";
-import cors           from "cors";
-import cookieParser   from "cookie-parser";
-import compression    from "compression";
-import helmet         from "helmet";
-import morgan         from "morgan";
-import mongoSanitize  from "express-mongo-sanitize";
-import xss            from "xss-clean";
-import hpp            from "hpp";
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import compression from "compression";
+import helmet from "helmet";
+import morgan from "morgan";
+import mongoSanitize from "express-mongo-sanitize";
+import xss from "xss-clean";
+import hpp from "hpp";
 
 const app = express();
 
@@ -48,15 +48,15 @@ import bookingRouter from "./routes/booking.route.js";
 import paymentRouter from "./routes/payment.route.js";
 import adminRouter from "./routes/admin.route.js";
 
-app.use("/api/v1/users",userRouter);
-app.use("/api/v1/stations",stationRouter);
-app.use("/api/v1/trains",trainRouter);
-app.use("/api/v1/schedules",scheduleRouter);
-app.use("/api/v1/search",searchRouter);
-app.use("/api/v1/seats",seatRouter);
-app.use("/api/v1/bookings",bookingRouter);
-app.use("/api/v1/payments",paymentRouter);
-app.use("/api/v1/admin",adminRouter);
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/stations", stationRouter);
+app.use("/api/v1/trains", trainRouter);
+app.use("/api/v1/schedules", scheduleRouter);
+app.use("/api/v1/search", searchRouter);
+app.use("/api/v1/seats", seatRouter);
+app.use("/api/v1/bookings", bookingRouter);
+app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/admin", adminRouter);
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./docs/swagger.js";
