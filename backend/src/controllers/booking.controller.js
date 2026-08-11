@@ -11,6 +11,7 @@ import { Route } from "../models/route.model.js";
 import { generateUniquePNR } from "../utils/pnrGenerator.js";
 import { getSeatLockOwner, releaseSeatLock } from "../utils/seatLock.js";
 import { calculateTotalFare, getDistanceBetweenStops } from "../utils/fareCalculator.js";
+import { emailQueue } from "../queues/emailQueue.js";
 
 // CREATE booking
 const createBooking = asyncHandler(async (req, res) => {
@@ -111,6 +112,17 @@ const createBooking = asyncHandler(async (req, res) => {
     // release Redis locks (only if they were manually locked)
     for (const seatId of seatIds) {
         await releaseSeatLock(seatId).catch(() => {});
+    }
+
+    // Send E-Ticket Email asynchronously
+    try {
+        await emailQueue.add("sendTicket", {
+            email: req.user.email,
+            subject: `IRCTC — E-Ticket Confirmed (PNR: ${pnr})`,
+            message: `Hello ${req.user.username},\n\nYour train ticket has been confirmed!\n\nPNR: ${pnr}\nTrain Route: ${boardingStationId} to ${destinationStationId}\nTravel Date: ${new Date(schedule.journeyDate).toLocaleDateString()}\nTotal Fare: ₹${totalFare}\n\nHave a safe journey!\n- IRCTC Team`,
+        });
+    } catch (err) {
+        console.error("Failed to queue booking email:", err);
     }
 
     return res.status(201).json(
