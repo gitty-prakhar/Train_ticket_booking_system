@@ -13,37 +13,15 @@ console.log("📧 Email Worker running...");
 export const emailWorker=new Worker(
     "emailQueue",
     async(job)=>{
-        const{bookingId}=job.data;
+        const { email, subject, message } = job.data;
+        
+        if (!email || !subject || !message) {
+            console.error("❌ Email job missing required data:", job.data);
+            return;
+        }
 
-        const booking=await Booking.findById(bookingId)
-            .populate("userId","email username")
-            .populate("boardingStationId","name code")
-            .populate("destinationStationId","name code");
-
-        if(!booking)return;
-
-        const message = `
-            Hello ${booking.userId.username},
-
-            Your booking is confirmed!
-
-            PNR       : ${booking.pnr}
-            From      : ${booking.boardingStationId.name} (${booking.boardingStationId.code})
-            To        : ${booking.destinationStationId.name} (${booking.destinationStationId.code})
-            Travel Date : ${new Date(booking.travelDate).toDateString()}
-            Total Fare  : ₹${booking.totalFare}
-            Passengers  : ${booking.passengers.length}
-
-            Have a safe journey!
-            TrainBook Team`;
-
-        await sendEmail({
-            email:booking.userId.email,
-            subject:`Booking Confirmed — PNR ${booking.pnr}`,
-            message,
-        });
-
-        console.log(`✅ Email sent for PNR ${booking.pnr}`);
+        await sendEmail({ email, subject, message });
+        console.log(`✅ Email sent successfully to ${email}`);
     },
     {connection:redisConnection}
 );
