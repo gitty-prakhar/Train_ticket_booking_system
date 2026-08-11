@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { createBooking, getAllStations } from "../api";
+import { createBooking, createOrder, verifyPayment, getAllStations } from "../api";
 import { Users, CreditCard, Ticket, ShieldCheck, MapPin, Plus, Trash2, ShieldAlert } from "lucide-react";
 import "./BookingConfirm.css";
 
@@ -65,6 +65,16 @@ export default function BookingConfirm() {
         return total + state.farePerPerson;
     }, 0);
 
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement("script");
+            script.src = "https://checkout.razorpay.com/v1/checkout.js";
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handleConfirmBooking = async () => {
         if (!boardingStationId || !destinationStationId) {
             setError("Station data is still loading or invalid.");
@@ -85,6 +95,7 @@ export default function BookingConfirm() {
 
         setLoading(true); setError("");
         try {
+            // 1. Create Booking in DB
             const payload = {
                 scheduleId: state.scheduleId,
                 boardingStationId,
@@ -93,11 +104,62 @@ export default function BookingConfirm() {
                 passengers: passengers.map(p => ({ ...p, age: Number(p.age) }))
             };
             const res = await createBooking(payload);
-            const pnr = res.data.data.pnr;
-            navigate(`/bookings/${pnr}`, { replace: true });
+            const booking = res.data.data;
+            
+            // 2. Load Razorpay script
+            const isLoaded = await loadRazorpayScript();
+            if (!isLoaded) {
+                setError("Failed to load Razorpay SDK. Check your connection.");
+                setLoading(false);
+                return;
+            }
+
+            // 3. Create Razorpay order on backend
+            const orderRes = await createOrder({ bookingId: booking._id });
+            const { orderId, amount, currency, keyId, pnr } = orderRes.data.data;
+
+            // 4. Open Razorpay Widget
+            const options = {
+                key: keyId, 
+                amount: amount,
+                currency: currency,
+                name: "IRCTC Next-Gen",
+                description: `Ticket Booking - PNR: ${pnr}`,
+                order_id: orderId,
+                handler: async function (response) {
+                    try {
+                        await verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            bookingId: booking._id
+                        });
+                        navigate(`/bookings/${pnr}`, { replace: true });
+                    } catch (err) {
+                        setError("Payment verification failed. Please contact support.");
+                    }
+                },
+                prefill: {
+                    name: passengers[0]?.name || "Passenger",
+                    contact: "9999999999"
+                },
+                theme: { color: "#3b82f6" },
+                modal: {
+                    ondismiss: function () {
+                        setLoading(false);
+                        navigate(`/bookings/${pnr}`, { replace: true });
+                    }
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on("payment.failed", function (response) {
+                setError(response.error.description);
+            });
+            rzp.open();
+
         } catch (err) {
             setError(err.response?.data?.message || "Booking failed.");
-        } finally {
             setLoading(false);
         }
     };
