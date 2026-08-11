@@ -18,11 +18,7 @@ app.use(morgan("dev"));
 
 app.use(
     cors({
-        origin: [
-            process.env.CORS_ORIGIN || "http://localhost:5173", 
-            "http://localhost:5173",
-            "https://train-ticket-booking-system-peach.vercel.app"
-        ],
+        origin: true,
         credentials: true,
     })
 );
