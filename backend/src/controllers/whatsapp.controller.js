@@ -6,12 +6,9 @@ const client=twilio(process.env.TWILIO_ACCOUNT_SID,process.env.TWILIO_AUTH_TOKEN
 export const handleIncomingMessage=asyncHandler(async(req,res)=>{
     const incomingText=req.body.Body||"";
     const senderNumber=req.body.From;
-
     let responseMessage="Hello from IRCTC! Send 'PNR <your-pnr-number>' to check your ticket status.";
-
     if(incomingText.toUpperCase().startsWith("PNR")){
         const pnrNumber=incomingText.split(" ")[1];
-
         if(pnrNumber){
             const booking=await Booking.findOne({
                 pnr:pnrNumber
@@ -24,7 +21,6 @@ export const handleIncomingMessage=asyncHandler(async(req,res)=>{
             }
         }
     }
-
     await client.messages.create({
         body:responseMessage,
         from:process.env.TWILIO_WHATSAPP_NUMBER,
