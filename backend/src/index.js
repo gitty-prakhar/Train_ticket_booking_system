@@ -7,8 +7,10 @@ import app from "./app.js";
 // Initialize Queues and Workers
 import "./queues/emailQueue.js";
 import "./queues/waitlistQueue.js";
+import "./queues/whatsappQueue.js";
 import "./workers/emailWorker.js";
 import "./workers/waitlistWorker.js";
+import "./workers/whatsappWorker.js";
 
 connectDB()
 .then(()=>{
