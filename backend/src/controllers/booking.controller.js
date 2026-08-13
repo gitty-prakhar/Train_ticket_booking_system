@@ -14,12 +14,11 @@ import { calculateTotalFare, getDistanceBetweenStops } from "../utils/fareCalcul
 import { emailQueue } from "../queues/emailQueue.js";
 
 // CREATE booking
-const createBooking = asyncHandler(async (req, res) => {
-    const { scheduleId, coachType, boardingStationId, destinationStationId, passengers, isTatkal } = req.body;
-    let { seatIds } = req.body;
-
-    if (!scheduleId || !coachType || !boardingStationId || !destinationStationId || !passengers) {
-        throw new ApiError(400, "All fields are required");
+const createBooking = asyncHandler(async (req, res) =>{
+    const{scheduleId,coachType,boardingStationId,destinationStationId,passengers,isTatkal}=req.body;
+    let{seatIds}=req.body;
+    if(!scheduleId || !coachType || !boardingStationId || !destinationStationId || !passengers){
+        throw new ApiError(400,"All fields are required");
     }
 
     if (passengers.length > 6) {
@@ -235,4 +234,4 @@ const cancelBooking = asyncHandler(async (req, res) => {
     );
 });
 
-export { createBooking, getBookingByPNR, getMyBookings, cancelBooking };
+export {createBooking,getBookingByPNR,getMyBookings,cancelBooking};

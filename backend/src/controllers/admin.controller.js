@@ -9,41 +9,44 @@ import { Payment } from "../models/payment.model.js";
 // GET dashboard statistics
 const getDashboardStats=asyncHandler(async(req,res)=>{
     //count total users
-    const totalUsers = await User.countDocuments();
+    //countDocuments() count the total users in db
+    const totalUsers=await User.countDocuments();
     //count active trains
-    const totalTrains = await Train.countDocuments({
-        isActive: true
+
+    //countDocuments({isActive:true}) counts the total users in db who are active
+    const totalTrains=await Train.countDocuments({
+        isActive:true
     });
     //count all bookings
-    const totalBookings = await Booking.countDocuments();
+    const totalBookings=await Booking.countDocuments();
     //count confirmed bookings
-    const confirmedBookings = await Booking.countDocuments({
-        status: "Confirmed"
+    const confirmedBookings=await Booking.countDocuments({
+        status:"Confirmed"
     });
     //count cancelled bookings
-    const cancelledBookings = await Booking.countDocuments({
-        status: "Cancelled"
+    const cancelledBookings=await Booking.countDocuments({
+        status:"Cancelled"
     });
     //calculate total revenue
-    const totalPayments = await Payment.aggregate([
+    const totalPayments=await Payment.aggregate([
         {
-            $match: {
-                status: "Completed"
+            $match:{
+                status:"Completed"
             }
         },
         {
-            $group: {
-                _id: null,
-                totalRevenue: {
-                    $sum: "$amount"
+            $group:{
+                _id:null,
+                totalRevenue:{
+                    $sum:"$amount"
                 }
             }
         }
     ]);
     //convert paise to rupees
-    let totalRevenue = 0;
-    if (totalPayments.length > 0) {
-        totalRevenue = totalPayments[0].totalRevenue / 100;
+    let totalRevenue=0;
+    if(totalPayments.length>0){
+        totalRevenue=totalPayments[0].totalRevenue/100;
     }
     return res.status(200).json(
         new APIResponse(
@@ -54,7 +57,7 @@ const getDashboardStats=asyncHandler(async(req,res)=>{
                 totalBookings,
                 confirmedBookings,
                 cancelledBookings,
-                totalRevenue: `₹${totalRevenue}`
+                totalRevenue:`₹${totalRevenue}`
             },
             "Dashboard stats fetched"
         )
@@ -62,7 +65,7 @@ const getDashboardStats=asyncHandler(async(req,res)=>{
 });
 
 const getAllBookings=asyncHandler(async(req,res)=>{
-    const { status,page=1,limit=20}=req.query;
+    const{status,page=1,limit=20}=req.query;
     const filter={};
     //if status is provided filter bookings
     if(status){
@@ -75,14 +78,14 @@ const getAllBookings=asyncHandler(async(req,res)=>{
         .populate("userId","username email")
         .populate("boardingStationId","name code")
         .populate("destinationStationId","name code")
-        .sort({ createdAt:-1})
+        .sort({createdAt:-1})
         .skip(skip)
         .limit(Number(limit));
 
-    // Count total bookings
+    //count total bookings
     const total=await Booking.countDocuments(filter);
 
-    // Return response
+    //return response
     return res.status(200).json(
         new APIResponse(
             200,

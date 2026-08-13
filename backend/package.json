@@ -27,7 +27,8 @@
     "prettier": "^3.9.6",
     "razorpay": "^2.9.8",
     "redis": "^6.2.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^6.1.0"
   },
   "dependencies": {
     "compression": "^1.8.1",
