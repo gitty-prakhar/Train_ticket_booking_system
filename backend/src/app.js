@@ -38,6 +38,7 @@ import seatRouter from "./routes/seat.route.js";
 import bookingRouter from "./routes/booking.route.js";
 import paymentRouter from "./routes/payment.route.js";
 import adminRouter from "./routes/admin.route.js";
+import whatsappRouter from "./routes/whatsapp.routes.js";
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/stations", stationRouter);
@@ -48,6 +49,7 @@ app.use("/api/v1/seats", seatRouter);
 app.use("/api/v1/bookings", bookingRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/whatsapp", whatsappRouter);
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./docs/swagger.js";

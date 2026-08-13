@@ -12,6 +12,7 @@ import { generateUniquePNR } from "../utils/pnrGenerator.js";
 import { getSeatLockOwner, releaseSeatLock } from "../utils/seatLock.js";
 import { calculateTotalFare, getDistanceBetweenStops } from "../utils/fareCalculator.js";
 import { emailQueue } from "../queues/emailQueue.js";
+import { whatsappQueue } from "../queues/whatsappQueue.js";
 
 // CREATE booking
 const createBooking = asyncHandler(async (req, res) =>{
@@ -130,6 +131,15 @@ const createBooking = asyncHandler(async (req, res) =>{
             subject: `IRCTC — E-Ticket Confirmed (PNR: ${pnr})`,
             message: `Hello ${req.user.username},\n\nYour train ticket has been confirmed!\n\nPNR: ${pnr}\nTrain Route: ${boardingName} to ${destName}\nTravel Date: ${new Date(schedule.journeyDate).toLocaleDateString()}\nTotal Fare: ₹${totalFare}\n\nHave a safe journey!\n- IRCTC Team`,
         });
+
+        if (req.user.phone) {
+            await whatsappQueue.add("sendTicket", {
+                phone: req.user.phone,
+                pnr: pnr,
+                totalFare: totalFare,
+                date: new Date(schedule.journeyDate).toLocaleDateString()
+            });
+        }
     } catch (err) {
         console.error("Failed to queue booking email:", err);
     }
