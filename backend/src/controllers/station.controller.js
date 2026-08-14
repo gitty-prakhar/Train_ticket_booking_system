@@ -67,7 +67,7 @@ const getStationByCode = asyncHandler(async(req,res)=>{
 });
 
 const updateStation=asyncHandler(async(req,res)=>{
-    const {name,city,state,zone}=req.body;
+    const{name,city,state,zone}=req.body;
     const station=await Station.findByIdAndUpdate(
         req.params.id,
         {name,city,state,zone},
