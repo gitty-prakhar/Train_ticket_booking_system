@@ -150,6 +150,11 @@ const createBooking=asyncHandler(async(req,res)=>{
             email:req.user.email,
             subject:`IRCTC — E-Ticket Confirmed (PNR: ${pnr})`,
             message: `Hello ${req.user.username},\n\nYour train ticket has been confirmed!\n\nPNR: ${pnr}\nTrain Route: ${boardingName} to ${destName}\nTravel Date: ${new Date(schedule.journeyDate).toLocaleDateString()}\nTotal Fare: ₹${totalFare}\n\nHave a safe journey!\n- IRCTC Team`,
+            bookingDetails: {
+                pnr: pnr,
+                status: "Confirmed",
+                totalFare: totalFare
+            }
         });
 
         //send whatsapp message
