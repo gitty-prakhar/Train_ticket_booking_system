@@ -6,7 +6,7 @@ import { Booking } from "../models/booking.model.js";
 import { Train } from "../models/train.model.js";
 import { Payment } from "../models/payment.model.js";
 
-// GET dashboard statistics
+//get dashboard statistics
 const getDashboardStats=asyncHandler(async(req,res)=>{
     //count total users
     //countDocuments() count the total users in db
@@ -28,12 +28,16 @@ const getDashboardStats=asyncHandler(async(req,res)=>{
         status:"Cancelled"
     });
     //calculate total revenue
+    //this is mongodb aggregation pipelines
+    //it returns array
     const totalPayments=await Payment.aggregate([
         {
             $match:{
                 status:"Completed"
             }
         },
+        //$match is a mongodb filter
+        //it will pass only completed payments in the pipeline
         {
             $group:{
                 _id:null,
@@ -42,11 +46,13 @@ const getDashboardStats=asyncHandler(async(req,res)=>{
                 }
             }
         }
+        //and all that completed payemnts keep them in a group and add their values
     ]);
     //convert paise to rupees
     let totalRevenue=0;
     if(totalPayments.length>0){
         totalRevenue=totalPayments[0].totalRevenue/100;
+        //there is only one object in the array
     }
     return res.status(200).json(
         new APIResponse(
@@ -67,20 +73,24 @@ const getDashboardStats=asyncHandler(async(req,res)=>{
 const getAllBookings=asyncHandler(async(req,res)=>{
     const{status,page=1,limit=20}=req.query;
     const filter={};
+    //initially filter object is empty so it there is no filter so fetch all the bookings
     //if status is provided filter bookings
+
     if(status){
         filter.status=status;
+        //if there is any filter then fetch all the bookings regarding the filter given
     }
+
     //pagination
     const skip=(Number(page)-1)*Number(limit);
     //fetch bookings
     const bookings=await Booking.find(filter)
-        .populate("userId","username email")
-        .populate("boardingStationId","name code")
-        .populate("destinationStationId","name code")
-        .sort({createdAt:-1})
-        .skip(skip)
-        .limit(Number(limit));
+        .populate("userId","username email")         //this will show only username and email of user
+        .populate("boardingStationId","name code")      //this will show only name and code of boarding station
+        .populate("destinationStationId","name code")   //this will show only name and code of destination station
+        .sort({createdAt:-1})                           //sort in descending order
+        .skip(skip)                                     //skip the documents
+        .limit(Number(limit));                          //limit the documents
 
     //count total bookings
     const total=await Booking.countDocuments(filter);
@@ -107,10 +117,10 @@ const getAllUsers=asyncHandler(async(req,res)=>{
     const skip=(Number(page)-1)*Number(limit);
     //fetch users
     const users=await User.find()
-        .select("-password -refreshToken")
-        .sort({createdAt:-1})
-        .skip(skip)
-        .limit(Number(limit));
+        .select("-password -refreshToken")   //this will show only username and email of user
+        .sort({createdAt:-1})                   //sort in descending order
+        .skip(skip)                             //skip the documents
+        .limit(Number(limit));                  //limit the documents
     //count total users
     const total=await User.countDocuments();
     //return response
