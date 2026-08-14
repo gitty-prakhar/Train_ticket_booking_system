@@ -5,9 +5,9 @@ import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
 
 const createTrain=asyncHandler(async(req,res)=>{
-    const {trainNumber,trainName,trainType,runningDays,stops}=req.body;
-    if (!trainNumber || !trainName || !trainType || !stops || stops.length<2){
-        throw new ApiError(400, "All fields required. At least 2 stops needed.");
+    const{trainNumber,trainName,trainType,runningDays,stops}=req.body;
+    if(!trainNumber||!trainName||!trainType||!stops||stops.length<2){
+        throw new ApiError(400,"All fields required. At least 2 stops needed.");
     }
 
     const existing=await Train.findOne({trainNumber});
@@ -15,15 +15,18 @@ const createTrain=asyncHandler(async(req,res)=>{
         throw new ApiError(409,`Train ${trainNumber} already exists`);
     }
 
-    const train = await Train.create({
+    const train=await Train.create({
         trainNumber,
         trainName,
         trainType,
         runningDays:runningDays||[],
     });
 
-    const sortedStops = stops.sort((a,b)=>a.stopNumber-b.stopNumber);
-    const route = await Route.create({
+    //sort the stops by stopNumber
+    const sortedStops=stops.sort((a,b)=>a.stopNumber-b.stopNumber);
+
+    //create the route
+    const route=await Route.create({
         trainId:train._id,
         stops:sortedStops,
     });
@@ -39,7 +42,8 @@ const getAllTrains=asyncHandler(async(req,res)=>{
 });
 
 const getTrainById=asyncHandler(async(req,res)=>{
-    const train=await Train.findById(req.params.id);
+    const{id}=req.params;
+    const train=await Train.findById(id);
     if(!train){
         throw new ApiError(404,"Train not found");
     }
@@ -48,7 +52,7 @@ const getTrainById=asyncHandler(async(req,res)=>{
 });
 
 
-// UPDATE train
+//update train
 const updateTrain=asyncHandler(async(req,res)=>{
     const{trainName,trainType,runningDays,isActive}=req.body;
     const train=await Train.findByIdAndUpdate(req.params.id,
@@ -63,7 +67,8 @@ const updateTrain=asyncHandler(async(req,res)=>{
 
 // DELETE train and its route
 const deleteTrain=asyncHandler(async(req,res)=>{
-    const train=await Train.findById(req.params.id);
+    const{id}=req.params;
+    const train=await Train.findById(id);
     if(!train){
         throw new ApiError(404,"Train not found");
     }
