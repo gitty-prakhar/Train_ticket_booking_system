@@ -3,10 +3,10 @@ import { Station } from "../models/station.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
 
-const createStation = asyncHandler(async(req,res)=>{
-    const {name,code,city,state,zone}=req.body;
+const createStation=asyncHandler(async(req,res)=>{
+    const{name,code,city,state,zone}=req.body;
 
-    if (!name||!code||!city||!state) {
+    if(!name||!code||!city||!state){
         throw new ApiError(400,"Name, code, city and state are required");
     }
 
@@ -22,16 +22,17 @@ const createStation = asyncHandler(async(req,res)=>{
 })
 
 
-const getAllStations = asyncHandler(async(req,res)=>{
-    const {search}=req.query;
+const getAllStations=asyncHandler(async(req,res)=>{
+    const{search}=req.query;
     let filter={}
+    //regex search  ($or) is used to search in multiple fields simultaneously
     if(search){
         filter={
             $or:[
                 {
                     name:{
-                        $regex:search,
-                        $options:"i",
+                        $regex:search,  //search for pattern matching
+                        $options:"i",   //search case insensitive
                     },
                 },
                 {
@@ -49,14 +50,11 @@ const getAllStations = asyncHandler(async(req,res)=>{
             ],
         };
     }   
-    const stations = await Station.find(filter).sort({name:1});
-
+    const stations=await Station.find(filter).sort({name:1});
     return res.status(200).json(
         new APIResponse(200,stations,"Stations fetched successfully")
     );
-
 });
-
 
 const getStationByCode = asyncHandler(async(req,res)=>{
     const station=await Station.findOne({code:req.params.code.toUpperCase()});
@@ -64,16 +62,16 @@ const getStationByCode = asyncHandler(async(req,res)=>{
         throw new ApiError(404,"Station not found");
     }
     return res.status(200).json(
-        new APIResponse(200, station, "Station fetched successfully")
+        new APIResponse(200, station,"Station fetched successfully")
     );
 });
 
 const updateStation=asyncHandler(async(req,res)=>{
     const {name,city,state,zone}=req.body;
-    const station = await Station.findByIdAndUpdate(
+    const station=await Station.findByIdAndUpdate(
         req.params.id,
-        { name,city,state,zone},
-        { new:true,runValidators:true }
+        {name,city,state,zone},
+        {new:true,runValidators:true}
     );
     if(!station){
         throw new ApiError(404,"Station not found");
@@ -94,4 +92,4 @@ const deleteStation = asyncHandler(async(req,res)=>{
     );
 });
 
-export {createStation,getAllStations,getStationByCode,updateStation,deleteStation};
+export{createStation,getAllStations,getStationByCode,updateStation,deleteStation};
