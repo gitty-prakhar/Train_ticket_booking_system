@@ -6,28 +6,29 @@ import { Coach } from "../models/coach.model.js";
 import { lockSeat, getSeatLockOwner, releaseSeatLock, getLockTTL } from "../utils/seatLock.js";
 
 const getSeatMap=asyncHandler(async(req,res)=>{
+    //get coachId from parameters
     const{coachId}=req.params;
 
     const coach=await Coach.findById(coachId);
     if(!coach)throw new ApiError(404,"Coach not found");
 
+    //fetch all the seats of this coach
     const seats=await Seat.find({coachId}).select("seatNumber berthType status lockExpiresAt");
 
     return res.status(200).json(new APIResponse(200,{coach,seats},"Seat map fetched"));
 });
 
-// POST lock seats — user selects seats before filling details
+//post lock seats user selects seats before filling details
 const lockSeats=asyncHandler(async(req,res)=>{
-    const {seatIds}=req.body;
+    const{seatIds}=req.body;
 
-    if(!seatIds || seatIds.length===0){
+    if(!seatIds||seatIds.length===0){
         throw new ApiError(400,"seatIds array is required");
     }
-
     if(seatIds.length>6){
         throw new ApiError(400,"Cannot lock more than 6 seats at once");
     }
-
+    //check if all seats are available
     const seats=await Seat.find({
         _id:{$in:seatIds },
         status:"Available",
@@ -40,15 +41,15 @@ const lockSeats=asyncHandler(async(req,res)=>{
     const failedSeats=[];
 
     for(const seatId of seatIds){
-        const locked = await lockSeat(seatId,req.user._id);
+        const locked=await lockSeat(seatId,req.user._id);
         if(!locked){
             failedSeats.push(seatId);
         }
     }
 
-    if (failedSeats.length>0){
-        for (const seatId of seatIds){
-            if (!failedSeats.includes(seatId)) {
+    if(failedSeats.length>0){
+        for(const seatId of seatIds){
+            if(!failedSeats.includes(seatId)){
                 await releaseSeatLock(seatId);
             }
         }
@@ -66,13 +67,13 @@ const lockSeats=asyncHandler(async(req,res)=>{
         }
     );
 
-    //get how many seconds are left on lock (for frontend timer)
+    //get how many seconds are left on lock for frontend timer
     const ttl=await getLockTTL(seatIds[0]);
 
     return res.status(200).json(new APIResponse(200,{lockedSeatIds:seatIds,lockExpiresAt,ttlSeconds:ttl},"Seats locked. You have 10 minutes to complete booking."));
 });
 
-const releaseSeats = asyncHandler(async(req,res)=>{
+const releaseSeats=asyncHandler(async(req,res)=>{
     const {seatIds}=req.body;
 
     if(!seatIds||seatIds.length===0){
@@ -86,7 +87,7 @@ const releaseSeats = asyncHandler(async(req,res)=>{
 
     //set status back to Available in MongoDB
     await Seat.updateMany(
-        {_id:{$in:seatIds},lockedBy: req.user._id},
+        {_id:{$in:seatIds},lockedBy:req.user._id},
         {status:"Available",lockedBy:null,lockExpiresAt:null}
     );
 
