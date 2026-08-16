@@ -20,7 +20,7 @@ app.use(morgan("dev"));
 app.use(
     cors({
         origin:true,
-        credentials: true,
+        credentials:true,
     })
 );
 
@@ -41,18 +41,18 @@ import bookingRouter from "./routes/booking.route.js";
 import paymentRouter from "./routes/payment.route.js";
 import adminRouter from "./routes/admin.route.js";
 import whatsappRouter from "./routes/whatsapp.routes.js";
-
-app.use("/api/v1/users", userRouter);
-app.use("/api/v1/stations", stationRouter);
-app.use("/api/v1/trains", trainRouter);
-app.use("/api/v1/schedules", scheduleRouter);
-app.use("/api/v1/search", searchRouter);
-app.use("/api/v1/seats", seatRouter);
-app.use("/api/v1/bookings", bookingRouter);
-app.use("/api/v1/payments", paymentRouter);
-app.use("/api/v1/admin", adminRouter);
-app.use("/api/v1/whatsapp", whatsappRouter);
-
+import chatRouter from "./routes/chat.route.js";
+app.use("/api/v1/users",userRouter);
+app.use("/api/v1/stations",stationRouter);
+app.use("/api/v1/trains",trainRouter);
+app.use("/api/v1/schedules",scheduleRouter);
+app.use("/api/v1/search",searchRouter);
+app.use("/api/v1/seats",seatRouter);
+app.use("/api/v1/bookings",bookingRouter);
+app.use("/api/v1/payments",paymentRouter);
+app.use("/api/v1/admin",adminRouter);
+app.use("/api/v1/whatsapp",whatsappRouter);
+app.use("/api/v1/chat",chatRouter);
 import swaggerUi from "swagger-ui-express"; //swagger docs or documentation for the backend to mark all the apis
 import { swaggerDocument } from "./docs/swagger.js";
 app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerDocument));
