@@ -23,7 +23,7 @@ export const calculateFare=(distanceKm,coachType,isTatkal=false,age=25)=>{
         fare=fare/2;
     }
 
-    return Math.max(Math.round(fare),30); // base fare 30 rupees
+    return Math.max(Math.round(fare),30); //base fare 30 rupees
 }
 
 //total fare for all passengers 

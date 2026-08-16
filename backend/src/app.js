@@ -53,15 +53,16 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/whatsapp", whatsappRouter);
 
-import swaggerUi from "swagger-ui-express";
+import swaggerUi from "swagger-ui-express"; //swagger docs or documentation for the backend to mark all the apis
 import { swaggerDocument } from "./docs/swagger.js";
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerDocument));
 
-// Health check route for Render
+//health check route for Render
 app.get("/",(req,res)=>{
     res.status(200).json({success:true,message:"IRCTC Backend is running perfectly!"});
 });
 
+//global error handler
 import { errorHandler } from "./middlewares/error.middleware.js";
 app.use(errorHandler);
 export default app;

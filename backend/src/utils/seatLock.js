@@ -1,22 +1,24 @@
 import Redis from "ioredis";
 
-// this is basic connection to redis code
-const redis = process.env.REDIS_URL 
-    ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
-    : new Redis({
-        host: "127.0.0.1",
-        port: 6379,
-        maxRetriesPerRequest: null,
+//this is basic connection to redis code
+//if redis URL is there connect to that else connect to local redis
+//max retries per request is set to null so that it does not retry on failure
+const redis = process.env.REDIS_URL
+    ?new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:null})
+    :new Redis({
+        host:"127.0.0.1",
+        port:6379,
+        maxRetriesPerRequest:null,
     });
 
 
 const LOCK_TIME=600;
 
 const lockSeat=async(seatId,userId)=>{
-    const result = await redis.set(`seat:lock:${seatId}`,userId.toString(),"EX",LOCK_TIME,"NX");
-    //redis.set(key, value, "EX", seconds, "NX")
+    const result=await redis.set(`seat:lock:${seatId}`,userId.toString(),"EX",LOCK_TIME,"NX");
+    //redis.set(key,value,"EX",seconds,"NX")
     //this means store the data temporarily if it does not exist into the redis for 10 minutes that is 600 seconds
-    // it returns either "YES" or "null"
+    //it returns either "YES" or "null"
 
     return result==="OK";
 }
