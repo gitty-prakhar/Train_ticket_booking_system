@@ -1,34 +1,30 @@
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 
-const redisConnection = process.env.REDIS_URL 
-    ? new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null }) 
-    : new Redis({ host: "127.0.0.1", port: 6379, maxRetriesPerRequest: null });
+const redisConnection=process.env.REDIS_URL?new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:null}):new Redis({host:"127.0.0.1",port:6379,maxRetriesPerRequest:null});
 import twilio from "twilio";
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const client=twilio(process.env.TWILIO_ACCOUNT_SID,process.env.TWILIO_AUTH_TOKEN);
 
-const whatsappWorker = new Worker(
+const whatsappWorker=new Worker(
     "whatsappQueue",
-    async (job) => {
-        if (job.name === "sendTicket") {
-            const { phone, pnr, totalFare, date } = job.data;
-            
-            // Format phone number to E.164 format for WhatsApp (e.g., +919876543210)
-            const formattedPhone = `whatsapp:+91${phone}`;
+    async(job)=>{
+        if(job.name==="sendTicket"){
+            const{phone,pnr,totalFare,date}=job.data;
+            const formattedPhone=`whatsapp:+91${phone}`;
 
             await client.messages.create({
-                body: `🎟️ *IRCTC E-Ticket Confirmed!*\n\nPNR: ${pnr}\nDate: ${date}\nFare: ₹${totalFare}\n\nThank you for choosing IRCTC.`,
-                from: process.env.TWILIO_WHATSAPP_NUMBER,
-                to: formattedPhone
+                body:`🎟️ *IRCTC E-Ticket Confirmed!*\n\nPNR: ${pnr}\nDate: ${date}\nFare: ₹${totalFare}\n\nThank you for choosing IRCTC.`,
+                from:process.env.TWILIO_WHATSAPP_NUMBER,
+                to:formattedPhone
             });
             console.log(`[Twilio] WhatsApp E-Ticket sent to ${phone}`);
         }
     },
-    { connection: redisConnection }
+    {connection:redisConnection}
 );
 
-whatsappWorker.on("completed", (job) => console.log(`[Twilio] Job ${job.id} completed.`));
-whatsappWorker.on("failed", (job, err) => console.error(`[Twilio] Job ${job.id} failed:`, err.message));
+whatsappWorker.on("completed",(job)=>console.log(`[Twilio] Job ${job.id} completed.`));
+whatsappWorker.on("failed",(job,err)=>console.error(`[Twilio] Job ${job.id} failed:`,err.message));
 
 export default whatsappWorker;
