@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 //s3client allows nodejs to communicate with s3
@@ -29,7 +29,7 @@ export const uploadPdfToS3=async(pdfBuffer,pnr)=>{
     await s3.send(command);
 
     //generate a secure download link that expires in 24 hours (86400 seconds)
-    const getCommand=new PutObjectCommand({Bucket:process.env.AWS_S3_BUCKET_NAME,Key:fileName});
+    const getCommand=new GetObjectCommand({Bucket:process.env.AWS_S3_BUCKET_NAME,Key:fileName});
     const downloadUrl=await getSignedUrl(s3,getCommand,{expiresIn:86400});
 
     return downloadUrl;
