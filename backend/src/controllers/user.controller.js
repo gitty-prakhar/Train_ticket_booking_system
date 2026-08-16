@@ -134,8 +134,12 @@ const loginUser=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Password is required");
     }
 
+    const identifier = email || username;
     const user=await User.findOne({
-        $or:[...(email?[{email:email.toLowerCase()}]:[]),...(username?[{username:username.toLowerCase()}]:[])],
+        $or:[
+            { email: identifier.toLowerCase() },
+            { username: identifier.toLowerCase() }
+        ]
     }).select("+password +refreshToken");
 
     if(!user){
