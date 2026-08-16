@@ -3,7 +3,7 @@ import { createTrain, getAllTrains,getTrainById, updateTrain, deleteTrain } from
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { verifyRole } from "../middlewares/auth.middleware.js";
 
-const router = Router();
+const router=Router();
 
 router.route("/").get(getAllTrains);
 router.route("/:id").get(getTrainById);

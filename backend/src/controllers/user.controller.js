@@ -5,83 +5,87 @@ import { emailQueue } from "../queues/emailQueue.js";
 import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
 
-// ─── Helper: Generate Tokens ──────────────────────────────
-const generateAccessAndRefreshTokens = async (userID) => {
-    try {
-        const user = await User.findById(userID);
-        const accessToken  = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
-        user.refreshToken  = refreshToken;
-        await user.save({ validateBeforeSave: false });
-        return { accessToken, refreshToken };
-    } catch (err) {
-        console.error("Token Generation Error:", err);
-        throw new ApiError(500, "Something went wrong while generating tokens");
+//function to generate tokens
+const generateAccessAndRefreshTokens=async(userID)=>{
+    try{
+        const user=await User.findById(userID);
+        const accessToken =user.generateAccessToken();
+        const refreshToken=user.generateRefreshToken();
+        user.refreshToken=refreshToken;
+        await user.save({validateBeforeSave:false});
+        return{accessToken,refreshToken};
+    } 
+    catch(err){
+        console.error("Token Generation Error:",err);
+        throw new ApiError(500,"Something went wrong while generating tokens");
     }
 };
 
 // ─── REGISTER: Step 1 — Send OTP, don't confirm yet ────────
-const registerUser = asyncHandler(async (req, res) => {
-    const { email, username, password } = req.body;
+const registerUser=asyncHandler(async(req,res)=>{
+    const {email,username,password}=req.body;//destructuring
 
-    if (!email || !username || !password) {
-        throw new ApiError(400, "All fields are required");
+    if(!email||!username||!password){
+        throw new ApiError(400,"All fields are required");
     }
-    if (password.length < 8) {
-        throw new ApiError(400, "Password must be at least 8 characters");
-    }
-
-    // Check if a fully-verified user already exists with same email/username
-    const existingVerified = await User.findOne({
-        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
-        isVerified: true,
-    });
-    if (existingVerified) {
-        throw new ApiError(409, "An account with this email or username already exists");
+    if(password.length<8){
+        throw new ApiError(400,"Password must be at least 8 characters");
     }
 
-    const otp        = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry  = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-    // Upsert: update unverified account or create new one
-    let user = await User.findOne({
-        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
-        isVerified: false,
+    //check if a fully verified user already exists with same email/username
+    const existingVerified=await User.findOne({
+        $or:[{username:username.toLowerCase()},{email:email.toLowerCase()}],
+        isVerified:true,
     });
 
-    if (user) {
-        // Update existing unverified user's password + new OTP
-        user.password             = password; // will be hashed by pre-save hook
-        user.verificationOtp      = otp;
-        user.verificationOtpExpiry = otpExpiry;
+    if(existingVerified){
+        throw new ApiError(409,"An account with this email or username already exists");
+    }
+
+    const otp=Math.floor(100000+Math.random()*900000).toString();
+    const otpExpiry=new Date(Date.now()+15*60*1000); //15 minutes
+
+    //upsert:update unverified account or create new one
+    let user=await User.findOne({
+        $or:[{username:username.toLowerCase()},{email:email.toLowerCase()}],
+        isVerified:false,
+    });
+
+    if(user){
+        //update existing unverified user's password + new OTP
+        user.password=password;
+        user.verificationOtp=otp;
+        user.verificationOtpExpiry=otpExpiry;
         await user.save();
-    } else {
-        // Create fresh unverified user
-        user = await User.create({
-            email:                email.toLowerCase(),
-            username:             username.toLowerCase(),
+    } 
+    else{
+        //create fresh unverified user
+        user=await User.create({
+            email:email.toLowerCase(),
+            username:username.toLowerCase(),
             password,
-            isVerified:           false,
-            verificationOtp:      otp,
-            verificationOtpExpiry: otpExpiry,
+            isVerified:false,
+            verificationOtp:otp,
+            verificationOtpExpiry:otpExpiry,
         });
     }
 
-    // Send OTP email asynchronously using BullMQ
-    try {
-        await emailQueue.add("sendOTP", {
-            email: user.email,
-            subject: "IRCTC — Verify Your Email",
-            message: `Welcome to IRCTC!\n\nYour registration OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
+    //send OTP email asynchronously using BullMQ
+    try{
+        await emailQueue.add("sendOTP",{
+            email:user.email,
+            subject:"IRCTC—Verify Your Email",
+            message:`Welcome to IRCTC!\n\nYour registration OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
         });
-    } catch (err) {
-        // If adding to queue fails, delete the user so they can try again
+    } 
+    catch(err){
+        //if adding to queue fails,delete the user so they can try again
         await User.findByIdAndDelete(user._id);
-        throw new ApiError(500, "Failed to queue OTP email. Please try again.");
+        throw new ApiError(500,"Failed to queue OTP email. Please try again.");
     }
 
     return res.status(200).json(
-        new APIResponse(200, { email: user.email }, "OTP sent to your email. Please verify to complete registration.")
+        new APIResponse(200,{email:user.email},"OTP sent to your email. Please verify to complete registration.")
     );
 });
 
@@ -89,85 +93,82 @@ const registerUser = asyncHandler(async (req, res) => {
 const verifyRegistration = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
-        throw new ApiError(400, "Email and OTP are required");
+    if(!email || !otp){
+        throw new ApiError(400,"Email and OTP are required");
     }
 
-    const user = await User.findOne({
-        email:           email.toLowerCase(),
-        verificationOtp: otp.toString(),
-        isVerified:      false,
+    const user=await User.findOne({
+        email:email.toLowerCase(),
+        verificationOtp:otp.toString(),
+        isVerified:false,
     });
 
-    if (!user) {
-        throw new ApiError(400, "Invalid OTP or email. Please register again.");
+    if(!user){
+        throw new ApiError(400,"Invalid OTP or email. Please register again.");
     }
 
-    if (user.verificationOtpExpiry < new Date()) {
-        // Cleanup expired user
+    if(user.verificationOtpExpiry<new Date()){
+        //cleanup expired user
         await User.findByIdAndDelete(user._id);
-        throw new ApiError(400, "OTP has expired. Please register again.");
+        throw new ApiError(400,"OTP has expired. Please register again.");
     }
 
-    user.isVerified            = true;
-    user.verificationOtp       = null;
-    user.verificationOtpExpiry = null;
-    await user.save({ validateBeforeSave: false });
+    user.isVerified=true;
+    user.verificationOtp=null;
+    user.verificationOtpExpiry=null;
+    await user.save({validateBeforeSave:false});
 
     return res.status(200).json(
-        new APIResponse(200, {}, "Email verified! Your account is now active. Please login.")
+        new APIResponse(200,{},"Email verified! Your account is now active. Please login.")
     );
 });
 
-// ─── LOGIN ─────────────────────────────────────────────────
-const loginUser = asyncHandler(async (req, res) => {
-    const { username, email, password } = req.body;
+//login
+const loginUser=asyncHandler(async(req,res)=>{
+    const {username,email,password}=req.body;
 
-    if (!email && !username) {
-        throw new ApiError(400, "Username or email is required");
+    if(!email&&!username){
+        throw new ApiError(400,"Username or email is required");
     }
-    if (!password) {
-        throw new ApiError(400, "Password is required");
+    if(!password){
+        throw new ApiError(400,"Password is required");
     }
 
-    const user = await User.findOne({
-        $or: [
-            ...(email    ? [{ email:    email.toLowerCase()    }] : []),
-            ...(username ? [{ username: username.toLowerCase() }] : []),
-        ],
+    const user=await User.findOne({
+        $or:[...(email?[{email:email.toLowerCase()}]:[]),...(username?[{username:username.toLowerCase()}]:[])],
     }).select("+password +refreshToken");
 
-    if (!user) {
-        throw new ApiError(404, "No account found with this email or username");
+    if(!user){
+        throw new ApiError(404,"No account found with this email or username");
     }
 
-    // Block unverified users
-    if (!user.isVerified) {
-        throw new ApiError(403, "Please verify your email before logging in. Check your inbox for the OTP.");
+    //block unverified users
+    if(!user.isVerified){
+        throw new ApiError(403,"Please verify your email before logging in. Check your inbox for the OTP.");
     }
 
-    const isPasswordCorrect = await user.isPasswordCorrect(password);
-    if (!isPasswordCorrect) {
-        throw new ApiError(401, "Invalid password");
+    const isPasswordCorrect=await user.isPasswordCorrect(password);
+    if(!isPasswordCorrect){
+        throw new ApiError(401,"Invalid password");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
+    const loggedInUser=await User.findById(user._id).select("-password -refreshToken");
 
-    const cookieOptions = {
-        httpOnly: true,
-        secure:   process.env.NODE_ENV === "production" ? true : false,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    const cookieOptions={
+        httpOnly:true,
+        secure:process.env.NODE_ENV==="production"?true:false,
+        sameSite: process.env.NODE_ENV==="production"?"none":"lax",
     };
 
     return res
         .status(200)
-        .cookie("accessToken",  accessToken,  cookieOptions)
-        .cookie("refreshToken", refreshToken, cookieOptions)
-        .json(new APIResponse(200, { user: loggedInUser, accessToken, refreshToken }, "User logged in successfully"));
+        .cookie("accessToken",accessToken,cookieOptions)
+        .cookie("refreshToken",refreshToken,cookieOptions)
+        .json(new APIResponse(200,{user:loggedInUser,accessToken,refreshToken},"User logged in successfully"));
 });
 
-// ─── LOGOUT ────────────────────────────────────────────────
+//logout
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
 

@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 
 const verifyJWT=asyncHandler(async(req,res,next)=>{
     try{
-        const token=req.cookies.accessToken||req.header("Authorization").replace("Bearer ","");
+        const token=req.cookies?.accessToken||req.header("Authorization")?.replace("Bearer ","");
         if(!token){
             throw new ApiError(401,"Unauthorised Request\n"); //throws an error if no token is found
         }
@@ -30,4 +30,4 @@ const verifyRole=(...roles)=>(req,res,next)=>{
     next(); //passes the request to the next middleware
 };
 
-export { verifyJWT,verifyRole };
+export{verifyJWT,verifyRole};

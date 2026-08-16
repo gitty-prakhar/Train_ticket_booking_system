@@ -19,7 +19,7 @@ export const calculateFare=(distanceKm,coachType,isTatkal=false,age=25)=>{
         fare=fare*1.30; //30 percent extra for tatkal
     }
 
-    if(age>=5 && age <=12){
+    if(age>=5 && age<=12){
         fare=fare/2;
     }
 
