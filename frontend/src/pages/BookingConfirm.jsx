@@ -58,12 +58,14 @@ export default function BookingConfirm() {
         setPassengers(newP);
     };
 
-    const totalFare = passengers.reduce((total, p) => {
+    const getPassengerFare = (p) => {
         const age = Number(p.age) || 25;
-        if (age < 5) return total;
-        if (age >= 5 && age <= 12) return total + Math.max(Math.round(state.farePerPerson / 2), 30);
-        return total + state.farePerPerson;
-    }, 0);
+        if (age < 5) return 0;
+        if (age >= 5 && age <= 12) return Math.max(Math.round(state.farePerPerson / 2), 30);
+        return state.farePerPerson;
+    };
+
+    const totalFare = passengers.reduce((total, p) => total + getPassengerFare(p), 0);
 
     const loadRazorpayScript = () => {
         return new Promise((resolve) => {
@@ -147,7 +149,6 @@ export default function BookingConfirm() {
                 modal: {
                     ondismiss: function () {
                         setLoading(false);
-                        navigate(`/bookings/${pnr}`, { replace: true });
                     }
                 }
             };
@@ -155,6 +156,7 @@ export default function BookingConfirm() {
             const rzp = new window.Razorpay(options);
             rzp.on("payment.failed", function (response) {
                 setError(response.error.description);
+                setLoading(false);
             });
             rzp.open();
 
@@ -247,11 +249,26 @@ export default function BookingConfirm() {
                         <div className="glass-panel fare-summary">
                             <h3>Fare Summary</h3>
                             
-                            <div className="fare-row">
-                                <span>Ticket Fare ({passengers.length} Passenger{passengers.length > 1 ? 's' : ''})</span>
-                                <span>₹{totalFare.toLocaleString("en-IN")}</span>
-                            </div>
-                            <div className="fare-row text-success">
+                            {/* Per-passenger breakdown */}
+                            {passengers.map((p, i) => {
+                                const age = Number(p.age) || 25;
+                                const fare = getPassengerFare(p);
+                                const label = age < 5 ? "Child (Free)" : age <= 12 ? "Child (Half)" : "Adult";
+                                const name = p.name || `Passenger ${i + 1}`;
+                                return (
+                                    <div className="fare-row" key={i} style={{fontSize: 13}}>
+                                        <span style={{display:'flex', flexDirection:'column', gap:1}}>
+                                            <span>{name}</span>
+                                            <span style={{fontSize:11, color:'var(--text-muted)', fontWeight:600}}>{label} · Age {age || '—'}</span>
+                                        </span>
+                                        <span style={{color: fare === 0 ? 'var(--success)' : 'inherit'}}>
+                                            {fare === 0 ? 'Free' : `₹${fare.toLocaleString('en-IN')}`}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+
+                            <div className="fare-row text-success" style={{marginTop: 4}}>
                                 <span>Convenience Fee</span>
                                 <span>Free</span>
                             </div>

@@ -7,15 +7,15 @@ const verifyJWT=asyncHandler(async(req,res,next)=>{
     try{
         const token=req.cookies.accessToken||req.header("Authorization").replace("Bearer ","");
         if(!token){
-            throw new ApiError(401,"Unauthorised Request\n");
+            throw new ApiError(401,"Unauthorised Request\n"); //throws an error if no token is found
         }
-        const decodedToken=jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
-        const user=await User.findById(decodedToken._id).select("-password -refreshToken");
+        const decodedToken=jwt.verify(token,process.env.ACCESS_TOKEN_SECRET); //verifies the token
+        const user=await User.findById(decodedToken._id).select("-password -refreshToken"); //finds the user by the decoded token
     
         if(!user){
-            throw new ApiError(401,"Invalid Access Token\n");
+            throw new ApiError(401,"Invalid Access Token\n"); //throws an error if the user is not found
         }
-        req.user=user;
+        req.user=user; //attaches the user to the request object
         next();
     }
     catch(error){
@@ -23,13 +23,11 @@ const verifyJWT=asyncHandler(async(req,res,next)=>{
     }
 })
 
-export const verifyRole = (...roles) => {
-    return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            throw new ApiError(403, "Access denied. Insufficient permissions.");
-        }
-        next();
-    };
+const verifyRole=(...roles)=>(req,res,next)=>{
+    if(!req.user||!roles.includes(req.user.role)){
+        throw new ApiError(403,"Access denied. Insufficient permissions."); //throws an error if the user is not authorized
+    }
+    next(); //passes the request to the next middleware
 };
 
-export { verifyJWT };
+export { verifyJWT,verifyRole };

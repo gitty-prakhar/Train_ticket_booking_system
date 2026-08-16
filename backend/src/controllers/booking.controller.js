@@ -8,6 +8,7 @@ import { Seat } from "../models/seat.model.js";
 import { Coach } from "../models/coach.model.js";
 import { Schedule } from "../models/schedule.model.js";
 import { Route } from "../models/route.model.js";
+import { Station } from "../models/station.model.js";
 import { generateUniquePNR } from "../utils/pnrGenerator.js";
 import { getSeatLockOwner, releaseSeatLock } from "../utils/seatLock.js";
 import { calculateTotalFare, getDistanceBetweenStops } from "../utils/fareCalculator.js";

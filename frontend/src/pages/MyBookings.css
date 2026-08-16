@@ -1,89 +1,67 @@
-.bookings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 24px;
+/* ── My Bookings ────────────────────────────────── */
+.bookings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
 }
-
 .booking-card {
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    text-decoration: none;
-    color: var(--text-primary);
-    position: relative;
-    overflow: hidden;
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: var(--transition);
 }
-
-.booking-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    width: 100%; height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
-    transform: scaleX(0);
-    transition: transform 0.4s ease;
+.booking-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
 }
-
-.booking-card:hover::after {
-    transform: scaleX(1);
+.booking-card-top {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-
-.b-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+.booking-pnr {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-accent);
+  letter-spacing: 1px;
 }
-
-.b-pnr {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: #fff;
-    background: rgba(255,255,255,0.05);
-    padding: 4px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--glass-border);
+.booking-route {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
-
-.b-route {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    background: rgba(0,0,0,0.3);
-    padding: 16px;
-    border-radius: var(--radius);
+.booking-route-arrow { color: var(--text-muted); font-size: 12px; }
+.booking-meta {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
-
-.b-code {
-    font-size: 20px;
-    font-weight: 800;
-    color: #fff;
+.booking-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
-
-.b-arrow {
-    color: var(--accent);
-    opacity: 0.6;
-}
-
-.b-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid var(--glass-border);
-    padding-top: 16px;
-}
-
-.b-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-@media (max-width: 768px) {
-    .bookings-grid { grid-template-columns: 1fr; }
+.booking-meta-item svg { color: var(--text-muted); }
+.booking-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

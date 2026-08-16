@@ -6,12 +6,6 @@ import { Booking } from "../models/booking.model.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-//razorpay instance to use the functions
-const razorpay=new Razorpay({
-    key_id:process.env.RAZORPAY_KEY_ID||"dummy_key_id",
-    key_secret:process.env.RAZORPAY_KEY_SECRET||"dummy_key_secret",
-});
-
 //create razorpay order
 const createOrder=asyncHandler(async(req,res)=>{
     const{bookingId}=req.body;
@@ -25,18 +19,28 @@ const createOrder=asyncHandler(async(req,res)=>{
     if(booking.userId.toString()!==req.user._id.toString()){
         throw new ApiError(403,"This is not your booking");
     }
+
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    // Create fresh Razorpay instance with current env vars
+    const razorpayInstance = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+    });
+
     //create order on razorpay
-    const order=await razorpay.orders.create({
-        amount:booking.totalFare*100,   //razorpay expects amount in paise
-        currency:"INR",
-        receipt:booking.pnr
+    const order = await razorpayInstance.orders.create({
+        amount: booking.totalFare * 100,   //razorpay expects amount in paise
+        currency: "INR",
+        receipt: booking.pnr
     });
 
     //save order id
     await Payment.findByIdAndUpdate(
         booking.paymentId,
         {
-            gatewayOrderId:order.id
+            gatewayOrderId: order.id
         }
     );
 
@@ -44,16 +48,17 @@ const createOrder=asyncHandler(async(req,res)=>{
         new APIResponse(
             200,
             {
-                orderId:order.id,
-                amount:order.amount,
+                orderId: order.id,
+                amount: order.amount,
                 currency: order.currency,
-                pnr:booking.pnr,
-                keyId:process.env.RAZORPAY_KEY_ID
+                pnr: booking.pnr,
+                keyId: keyId
             },
             "Razorpay order created"
         )
     );
 });
+
 
 //verify payment
 const verifyPayment=asyncHandler(async(req,res)=>{
@@ -63,20 +68,15 @@ const verifyPayment=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Payment details are required");
     }
 
-
-    /*
-        after payment razorpay sends some information to frontend {razorpay_order_id,razorpay_payment_id,razorpay_signature}
-        we have to verify the signature
-        to do this we have to generate signature using razorpay_order_id and razorpay_payment_id
-        then compare it with the signature sent by razorpay
-        if both are same then payment is successful
-        otherwise payment is failed
-    */
+    //find booking
+    const booking=await Booking.findById(bookingId);
+    if(!booking){
+        throw new ApiError(404,"Booking not found");
+    }
 
 
 
-    
-    
+
     //generate signature
     const body=razorpay_order_id+"|"+razorpay_payment_id;
     const expectedSignature=crypto.createHmac("sha256",process.env.RAZORPAY_KEY_SECRET).update(body).digest("hex");
@@ -85,11 +85,7 @@ const verifyPayment=asyncHandler(async(req,res)=>{
     if(expectedSignature!==razorpay_signature){
         throw new ApiError(400,"Payment verification failed. Invalid signature.");
     }
-    //find booking
-    const booking=await Booking.findById(bookingId);
-    if(!booking){
-        throw new ApiError(404,"Booking not found");
-    }
+    
     //update payment
     await Payment.findByIdAndUpdate(
         booking.paymentId,

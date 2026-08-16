@@ -63,7 +63,7 @@ export const getAllUsers        = () => API.get("/admin/users");
 // ─── PAYMENTS ────────────────────────────────────────────────
 export const getMyPayments = () => API.get("/payments/my-payments");
 // (Note: createOrder and verifyPayment will be used if Razorpay is integrated)
-export const createOrder = (data) => API.post("/payments/create-order", data);
-export const verifyPayment = (data) => API.post("/payments/verify-payment", data);
+export const createOrder = (data) => API.post("/payments/order", data);
+export const verifyPayment = (data) => API.post("/payments/verify", data);
 
 export default API;

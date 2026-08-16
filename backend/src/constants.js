@@ -1,1 +1,1 @@
-export const DB_NAME = "trainBookingSystem";
+export const DB_NAME="trainBookingSystem";
