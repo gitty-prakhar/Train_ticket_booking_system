@@ -13,7 +13,7 @@ export const tatkalRateLimiter=rateLimit({
     store:new RedisStore({
         sendCommand:(...args)=>redisClient.call(...args),
     }),
-    handler:(req,res)=>{
+    handler:(req,res)=>{if 
         res.status(429).json({
             success:false,
             message:"Too many booking attempts from this IP. Please try again after a minute.",
