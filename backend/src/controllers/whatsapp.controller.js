@@ -25,7 +25,7 @@ export const handleIncomingMessage=asyncHandler(async(req,res)=>{
         }
     }
 
-    //sends the reply via Twilio
+    //sends the reply via twilio
     await clients.messages.create({
         body:responseMessage,
         from:process.env.TWILIO_WHATSAPP_NUMBER,
