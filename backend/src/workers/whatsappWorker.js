@@ -18,13 +18,13 @@ const whatsappWorker=new Worker(
                 from:process.env.TWILIO_WHATSAPP_NUMBER,
                 to:formattedPhone
             });
-            console.log(`[Twilio] WhatsApp E-Ticket sent to ${phone}`);
+            console.log(`WhatsApp E-Ticket sent to ${phone}`);
         }
     },
     {connection:redisConnection}
 );
 
-whatsappWorker.on("completed",(job)=>console.log(`[Twilio] Job ${job.id} completed.`));
-whatsappWorker.on("failed",(job,err)=>console.error(`[Twilio] Job ${job.id} failed:`,err.message));
+whatsappWorker.on("completed",(job)=>console.log(`Job ${job.id} completed.`));
+whatsappWorker.on("failed",(job,err)=>console.error(`Job ${job.id} failed:`,err.message));
 
 export default whatsappWorker;
