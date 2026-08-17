@@ -21,7 +21,7 @@ const generateAccessAndRefreshTokens=async(userID)=>{
     }
 };
 
-// ─── REGISTER: Step 1 — Send OTP, don't confirm yet ────────
+//register
 const registerUser=asyncHandler(async(req,res)=>{
     const {email,username,password}=req.body;//destructuring
 
@@ -89,11 +89,11 @@ const registerUser=asyncHandler(async(req,res)=>{
     );
 });
 
-// ─── VERIFY REGISTRATION: Step 2 — Activate account ───────
+//verify registration
 const verifyRegistration = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
-    if(!email || !otp){
+    if(!email||!otp){
         throw new ApiError(400,"Email and OTP are required");
     }
 
@@ -162,7 +162,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     const cookieOptions={
         httpOnly:true,
         secure:process.env.NODE_ENV==="production"?true:false,
-        sameSite: process.env.NODE_ENV==="production"?"none":"lax",
+        sameSite: process.env.NODE_ENV==="production"?"none":"lax",//protects against csrf attacks
     };
 
     return res
@@ -173,126 +173,119 @@ const loginUser=asyncHandler(async(req,res)=>{
 });
 
 //logout
-const logoutUser = asyncHandler(async (req, res) => {
-    await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
+const logoutUser = asyncHandler(async(req,res)=>{
+    await User.findByIdAndUpdate(req.user._id,{$unset:{refreshToken:1}},{new:true});
 
-    const cookieOptions = { 
-        httpOnly: true, 
-        secure:   process.env.NODE_ENV === "production" ? true : false,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    const cookieOptions={ 
+        httpOnly:true, 
+        secure:process.env.NODE_ENV==="production"?true:false,
+        sameSite:process.env.NODE_ENV==="production"?"none":"lax",
     };
 
     return res
         .status(200)
-        .clearCookie("accessToken",  cookieOptions)
-        .clearCookie("refreshToken", cookieOptions)
-        .json(new APIResponse(200, {}, "Logged out successfully"));
+        .clearCookie("accessToken",cookieOptions)
+        .clearCookie("refreshToken",cookieOptions)
+        .json(new APIResponse(200,{},"Logged out successfully"));
 });
 
-// ─── REFRESH ACCESS TOKEN ───────────────────────────────────
-const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingToken = req.cookies.refreshToken || req.body.refreshToken;
-    if (!incomingToken) throw new ApiError(401, "Unauthorized request");
+//refresh access token
+const refreshAccessToken = asyncHandler(async(req,res)=>{
+    //req contains information about the incoming request
+    const incomingToken=req.cookies.refreshToken||req.body.refreshToken;    //look for the refresh token in cookies else look for in body
+    if(!incomingToken)throw new ApiError(401,"Unauthorized request");
 
-    try {
-        const decoded = jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
-        const user    = await User.findById(decoded?._id).select("+refreshToken");
-        if (!user) throw new ApiError(401, "Invalid refresh token");
-        if (incomingToken !== user.refreshToken) throw new ApiError(401, "Refresh token is expired or used");
+    try{
+        const decoded=jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
+        const user=await User.findById(decoded?._id).select("+refreshToken");
+        if(!user)throw new ApiError(401,"Invalid refresh token");
+        if(incomingToken!==user.refreshToken)throw new ApiError(401,"Refresh token is expired or used");
 
-        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
-        const cookieOptions = { 
-            httpOnly: true, 
-            secure:   process.env.NODE_ENV === "production" ? true : false,
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        const{accessToken,refreshToken:newRefreshToken}=await generateAccessAndRefreshTokens(user._id);
+        const cookieOptions={ 
+            httpOnly:true, 
+            secure:process.env.NODE_ENV==="production"?true:false,
+            sameSite:process.env.NODE_ENV==="production"?"none":"lax",
         };
 
         return res
             .status(200)
-            .cookie("accessToken",  accessToken,     cookieOptions)
-            .cookie("refreshToken", newRefreshToken, cookieOptions)
-            .json(new APIResponse(200, { accessToken, refreshToken: newRefreshToken }, "Access token refreshed"));
-    } catch (error) {
-        throw new ApiError(401, error.message || "Invalid refresh token");
+            .cookie("accessToken", accessToken,cookieOptions)
+            .cookie("refreshToken",newRefreshToken,cookieOptions)
+            .json(new APIResponse(200,{accessToken,refreshToken:newRefreshToken},"Access token refreshed"));
+    } 
+    catch(error){
+        throw new ApiError(401,error.message||"Invalid refresh token");
     }
 });
 
-// ─── GET CURRENT USER ──────────────────────────────────────
-const getCurrentUser = asyncHandler(async (req, res) => {
-    return res.status(200).json(new APIResponse(200, req.user, "Current user fetched successfully"));
+//current user
+const getCurrentUser=asyncHandler(async(req,res)=>{
+    return res.status(200).json(new APIResponse(200,req.user,"Current user fetched successfully"));
 });
 
-// ─── CHANGE PASSWORD ───────────────────────────────────────
-const changeCurrentPassword = asyncHandler(async (req, res) => {
-    const { oldPassword, newPassword } = req.body;
+//change password
+const changeCurrentPassword=asyncHandler(async(req,res)=>{
+    const{oldPassword,newPassword}=req.body;
 
-    if (!oldPassword || !newPassword) throw new ApiError(400, "Both old and new passwords are required");
-    if (newPassword.length < 8)       throw new ApiError(400, "New password must be at least 8 characters");
+    if(!oldPassword||!newPassword)throw new ApiError(400,"Both old and new passwords are required");
+    if(newPassword.length<8)throw new ApiError(400,"New password must be at least 8 characters");
 
-    const user = await User.findById(req.user._id).select("+password");
-    if (!await user.isPasswordCorrect(oldPassword)) throw new ApiError(400, "Old password is incorrect");
+    const user=await User.findById(req.user._id).select("+password");
+    if(!await user.isPasswordCorrect(oldPassword))throw new ApiError(400,"Old password is incorrect");
 
-    user.password = newPassword;
-    await user.save({ validateBeforeSave: false });
+    user.password=newPassword;
+    await user.save({validateBeforeSave:false});
 
-    return res.status(200).json(new APIResponse(200, {}, "Password changed successfully"));
+    return res.status(200).json(new APIResponse(200,{},"Password changed successfully"));
 });
 
-// ─── FORGOT PASSWORD ───────────────────────────────────────
-const forgotPassword = asyncHandler(async (req, res) => {
-    const { email } = req.body;
-    if (!email) throw new ApiError(400, "Email is required");
+//forgot password
+const forgotPassword=asyncHandler(async(req,res)=>{
+    const{email}=req.body;
+    if(!email)throw new ApiError(400,"Email is required");
 
-    const user = await User.findOne({ email: email.toLowerCase(), isVerified: true });
-    if (!user) throw new ApiError(404, "No verified account found with this email");
+    const user=await User.findOne({email:email.toLowerCase(),isVerified:true});
+    if(!user)throw new ApiError(404,"No verified account found with this email");
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.forgotPasswordOtp       = otp;
-    user.forgotPasswordOtpExpiry = new Date(Date.now() + 15 * 60 * 1000);
-    await user.save({ validateBeforeSave: false });
+    const otp=Math.floor(100000+Math.random()*900000).toString();
+    user.forgotPasswordOtp=otp;
+    user.forgotPasswordOtpExpiry=new Date(Date.now()+15*60*1000);
+    await user.save({validateBeforeSave:false});
 
     try {
-        await emailQueue.add("sendPasswordReset", {
-            email:   user.email,
-            subject: "IRCTC — Password Reset OTP",
-            message: `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
+        await emailQueue.add("sendPasswordReset",{
+            email:user.email,
+            subject:"IRCTC — Password Reset OTP",
+            message:`Your password reset OTP is: ${otp}\n\nThis OTP is valid for 15 minutes. Do not share it with anyone.`,
         });
-        return res.status(200).json(new APIResponse(200, {}, "OTP sent to your email"));
-    } catch (err) {
-        user.forgotPasswordOtp       = undefined;
-        user.forgotPasswordOtpExpiry = undefined;
-        await user.save({ validateBeforeSave: false });
-        throw new ApiError(500, "Failed to queue OTP email. Please try again.");
+        return res.status(200).json(new APIResponse(200,{},"OTP sent to your email"));
+    } 
+    catch(err){
+        user.forgotPasswordOtp=undefined;
+        user.forgotPasswordOtpExpiry=undefined;
+        await user.save({validateBeforeSave:false});
+        throw new ApiError(500,"Failed to queue OTP email. Please try again.");
     }
 });
 
-// ─── RESET PASSWORD ────────────────────────────────────────
-const resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, newPassword } = req.body;
+//reset password
+const resetPassword=asyncHandler(async(req,res)=>{
+    const{email,otp,newPassword}=req.body;
 
-    if (!email || !otp || !newPassword) throw new ApiError(400, "All fields are required");
-    if (newPassword.length < 8)         throw new ApiError(400, "New password must be at least 8 characters");
+    if(!email||!otp||!newPassword)throw new ApiError(400,"All fields are required");
+    if(newPassword.length<8)throw new ApiError(400,"New password must be at least 8 characters");
 
-    const user = await User.findOne({ email: email.toLowerCase(), forgotPasswordOtp: otp });
-    if (!user) throw new ApiError(400, "Invalid OTP or email");
-    if (user.forgotPasswordOtpExpiry < new Date()) throw new ApiError(400, "OTP has expired");
+    const user=await User.findOne({email:email.toLowerCase(),forgotPasswordOtp:otp});
+    if(!user)throw new ApiError(400,"Invalid OTP or email");
+    if(user.forgotPasswordOtpExpiry<new Date())throw new ApiError(400,"OTP has expired");
 
-    user.password                = newPassword;
-    user.forgotPasswordOtp       = undefined;
-    user.forgotPasswordOtpExpiry = undefined;
-    await user.save({ validateBeforeSave: false });
+    user.password=newPassword;
+    user.forgotPasswordOtp=undefined;
+    user.forgotPasswordOtpExpiry=undefined;
+    await user.save({validateBeforeSave:false});
 
-    return res.status(200).json(new APIResponse(200, {}, "Password reset successfully"));
+    return res.status(200).json(new APIResponse(200,{},"Password reset successfully"));
 });
 
-export {
-    registerUser,
-    verifyRegistration,
-    loginUser,
-    logoutUser,
-    refreshAccessToken,
-    getCurrentUser,
-    changeCurrentPassword,
-    forgotPassword,
-    resetPassword,
-};
+export{registerUser,verifyRegistration,loginUser,logoutUser,refreshAccessToken,getCurrentUser,changeCurrentPassword,forgotPassword,resetPassword};
