@@ -16,16 +16,14 @@ const createStation=asyncHandler(async(req,res)=>{
     }
 
     const station = await Station.create({name,code,city,state,zone});
-    return res.status(201).json(
-        new APIResponse(201,station,"Station created successfully")
-    );
+    return res.status(201).json(new APIResponse(201,station,"Station created successfully"));
 })
 
 
 const getAllStations=asyncHandler(async(req,res)=>{
     const{search}=req.query;
     let filter={}
-    //regex search  ($or) is used to search in multiple fields simultaneously
+    //regex search ($or) is used to search in multiple fields simultaneously
     if(search){
         filter={
             $or:[
@@ -61,9 +59,7 @@ const getStationByCode = asyncHandler(async(req,res)=>{
     if(!station){
         throw new ApiError(404,"Station not found");
     }
-    return res.status(200).json(
-        new APIResponse(200, station,"Station fetched successfully")
-    );
+    return res.status(200).json(new APIResponse(200, station,"Station fetched successfully"));
 });
 
 const updateStation=asyncHandler(async(req,res)=>{
@@ -76,20 +72,16 @@ const updateStation=asyncHandler(async(req,res)=>{
     if(!station){
         throw new ApiError(404,"Station not found");
     }
-    return res.status(200).json(
-        new APIResponse(200,station,"Station updated successfully")
-    );
+    return res.status(200).json(new APIResponse(200,station,"Station updated successfully"));
 });
 
 
-const deleteStation = asyncHandler(async(req,res)=>{
+const deleteStation=asyncHandler(async(req,res)=>{
     const station=await Station.findByIdAndDelete(req.params.id);
     if(!station){
         throw new ApiError(404,"Station not found");
     }
-    return res.status(200).json(
-        new APIResponse(200,{},"Station deleted successfully")
-    );
+    return res.status(200).json(new APIResponse(200,{},"Station deleted successfully"));
 });
 
 export{createStation,getAllStations,getStationByCode,updateStation,deleteStation};

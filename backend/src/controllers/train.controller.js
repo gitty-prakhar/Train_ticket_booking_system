@@ -15,25 +15,15 @@ const createTrain=asyncHandler(async(req,res)=>{
         throw new ApiError(409,`Train ${trainNumber} already exists`);
     }
 
-    const train=await Train.create({
-        trainNumber,
-        trainName,
-        trainType,
-        runningDays:runningDays||[],
-    });
+    const train=await Train.create({trainNumber,trainName,trainType,runningDays:runningDays||[]});
 
     //sort the stops by stopNumber
     const sortedStops=stops.sort((a,b)=>a.stopNumber-b.stopNumber);
 
     //create the route
-    const route=await Route.create({
-        trainId:train._id,
-        stops:sortedStops,
-    });
+    const route=await Route.create({trainId:train._id,stops:sortedStops});
     
-    return res.status(201).json(
-        new APIResponse(201, { train, route }, "Train created successfully")
-    );
+    return res.status(201).json(new APIResponse(201,{train,route},"Train created successfully"));
 })
 
 const getAllTrains=asyncHandler(async(req,res)=>{
@@ -56,8 +46,9 @@ const getTrainById=asyncHandler(async(req,res)=>{
 const updateTrain=asyncHandler(async(req,res)=>{
     const{trainName,trainType,runningDays,isActive}=req.body;
     const train=await Train.findByIdAndUpdate(req.params.id,
-        { trainName, trainType, runningDays, isActive },
-        { new: true, runValidators: true }
+        {trainName,trainType,runningDays,isActive},
+        {new:true,runValidators:true}
+        //new:true means return the updated document instead of the old one
     );
     if(!train){
         throw new ApiError(404,"Train not found");
@@ -65,7 +56,7 @@ const updateTrain=asyncHandler(async(req,res)=>{
     return res.status(200).json(new APIResponse(200,train,"Train updated successfully"));
 });
 
-// DELETE train and its route
+//DELETE train and its route
 const deleteTrain=asyncHandler(async(req,res)=>{
     const{id}=req.params;
     const train=await Train.findById(id);

@@ -5,7 +5,8 @@ import { emailQueue } from "../queues/emailQueue.js";
 import { ApiError } from "../utils/apiError.js";
 import { APIResponse } from "../utils/apiResponse.js";
 
-//function to generate tokens
+
+//helper function to generate tokens
 const generateAccessAndRefreshTokens=async(userID)=>{
     try{
         const user=await User.findById(userID);
@@ -23,7 +24,7 @@ const generateAccessAndRefreshTokens=async(userID)=>{
 
 //register
 const registerUser=asyncHandler(async(req,res)=>{
-    const {email,username,password}=req.body;//destructuring
+    const{email,username,password}=req.body;//destructuring
 
     if(!email||!username||!password){
         throw new ApiError(400,"All fields are required");
@@ -84,14 +85,12 @@ const registerUser=asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Failed to queue OTP email. Please try again.");
     }
 
-    return res.status(200).json(
-        new APIResponse(200,{email:user.email},"OTP sent to your email. Please verify to complete registration.")
-    );
+    return res.status(200).json(new APIResponse(200,{email:user.email},"OTP sent to your email. Please verify to complete registration."));
 });
 
 //verify registration
-const verifyRegistration = asyncHandler(async (req, res) => {
-    const { email, otp } = req.body;
+const verifyRegistration=asyncHandler(async(req,res)=>{
+    const{email,otp}=req.body;
 
     if(!email||!otp){
         throw new ApiError(400,"Email and OTP are required");
@@ -118,9 +117,7 @@ const verifyRegistration = asyncHandler(async (req, res) => {
     user.verificationOtpExpiry=null;
     await user.save({validateBeforeSave:false});
 
-    return res.status(200).json(
-        new APIResponse(200,{},"Email verified! Your account is now active. Please login.")
-    );
+    return res.status(200).json(new APIResponse(200,{},"Email verified! Your account is now active. Please login."));
 });
 
 //login
@@ -134,11 +131,11 @@ const loginUser=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Password is required");
     }
 
-    const identifier = email || username;
+    const identifier=email||username;   //take email if it exist otherwise take username
     const user=await User.findOne({
         $or:[
-            { email: identifier.toLowerCase() },
-            { username: identifier.toLowerCase() }
+            {email:identifier.toLowerCase()},
+            {username:identifier.toLowerCase()}
         ]
     }).select("+password +refreshToken");
 
@@ -156,13 +153,13 @@ const loginUser=asyncHandler(async(req,res)=>{
         throw new ApiError(401,"Invalid password");
     }
 
-    const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
+    const{accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
     const loggedInUser=await User.findById(user._id).select("-password -refreshToken");
 
     const cookieOptions={
         httpOnly:true,
         secure:process.env.NODE_ENV==="production"?true:false,
-        sameSite: process.env.NODE_ENV==="production"?"none":"lax",//protects against csrf attacks
+        sameSite:process.env.NODE_ENV==="production"?"none":"lax",//protects against csrf attacks
     };
 
     return res
@@ -173,9 +170,9 @@ const loginUser=asyncHandler(async(req,res)=>{
 });
 
 //logout
-const logoutUser = asyncHandler(async(req,res)=>{
+const logoutUser=asyncHandler(async(req,res)=>{
     await User.findByIdAndUpdate(req.user._id,{$unset:{refreshToken:1}},{new:true});
-
+    //special mongodb operator $unset removes the refreshToken field from the user's document in MongoDB
     const cookieOptions={ 
         httpOnly:true, 
         secure:process.env.NODE_ENV==="production"?true:false,
@@ -190,11 +187,10 @@ const logoutUser = asyncHandler(async(req,res)=>{
 });
 
 //refresh access token
-const refreshAccessToken = asyncHandler(async(req,res)=>{
+const refreshAccessToken=asyncHandler(async(req,res)=>{
     //req contains information about the incoming request
     const incomingToken=req.cookies.refreshToken||req.body.refreshToken;    //look for the refresh token in cookies else look for in body
     if(!incomingToken)throw new ApiError(401,"Unauthorized request");
-
     try{
         const decoded=jwt.verify(incomingToken, process.env.REFRESH_TOKEN_SECRET);
         const user=await User.findById(decoded?._id).select("+refreshToken");

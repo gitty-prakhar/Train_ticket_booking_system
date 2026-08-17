@@ -74,7 +74,7 @@ const lockSeats=asyncHandler(async(req,res)=>{
 });
 
 const releaseSeats=asyncHandler(async(req,res)=>{
-    const {seatIds}=req.body;
+    const{seatIds}=req.body;
 
     if(!seatIds||seatIds.length===0){
         throw new ApiError(400,"seatIds array is required");
