@@ -51,8 +51,7 @@ export const emailWorker=new Worker(
                 console.error("PDF generation failed:",err);
             }
         }
-
-        try {
+        try{
             //send email using Resend API (HTTP)
             const{data,error}=await resend.emails.send({
                 from:"IRCTC <onboarding@resend.dev>", //default testing address for Resend
