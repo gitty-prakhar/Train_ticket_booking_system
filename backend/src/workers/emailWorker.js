@@ -19,8 +19,8 @@ export const emailWorker=new Worker(
     async(job)=>{
         const{email,subject,message,bookingDetails}=job.data;
         
-        if(!email||!subject || !message) {
-            console.error("❌ Email job missing required data:",job.data);
+        if(!email||!subject||!message){
+            console.error("Email job missing required data:",job.data);
             return;
         }
 
@@ -29,21 +29,22 @@ export const emailWorker=new Worker(
 
         if(bookingDetails){
             try{
-                // 1. Generate the PDF
+                //generate the PDF
                 const pdfBuffer=await generateTicketPDF(bookingDetails);
                 
-                // 2. Try S3 upload first
+                //try S3 upload first
                 try{
                     const s3Url=await uploadPdfToS3(pdfBuffer, bookingDetails.pnr);
                     finalMessage+=`\n\n⬇️ Download your official E-Ticket PDF here (Link expires in 24h):\n${s3Url}`;
-                } catch(s3Err){
-                    console.warn("S3 upload failed, attaching PDF directly to email instead.");
-                    // 3. Fallback: attach PDF directly to email
+                } 
+                catch(s3Err){
+                    console.warn("S3 upload failed,attaching PDF directly to email instead.");
+                    //fallback:attach PDF directly to email
                     attachments.push({
                         filename:`IRCTC-Ticket-${bookingDetails.pnr}.pdf`,
                         content:pdfBuffer
                     });
-                    finalMessage += `\n\n📎 Your E-Ticket PDF is attached to this email.`;
+                    finalMessage+=`\n\n📎 Your E-Ticket PDF is attached to this email.`;
                 }
             } 
             catch(err){
@@ -52,9 +53,9 @@ export const emailWorker=new Worker(
         }
 
         try {
-            // Send email using Resend API (HTTP)
+            //send email using Resend API (HTTP)
             const{data,error}=await resend.emails.send({
-                from: "IRCTC <onboarding@resend.dev>", // Default testing address for Resend
+                from:"IRCTC <onboarding@resend.dev>", //default testing address for Resend
                 to:email,
                 subject:subject,
                 text:finalMessage,
