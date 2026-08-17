@@ -1,8 +1,8 @@
 export const errorHandler=(err,req,res,next)=>{
     const statusCode=err.statusCode||500;  //error is initialized with the status code of the error or 500 if no status code is provided
     let message=err.message||"Internal Server Error";
-    if (err.error && err.error.description) {
-        message = err.error.description; // Capture Razorpay error messages
+    if(err.error&&err.error.description){
+        message=err.error.description; // Capture Razorpay error messages
     }
 
     return res.status(statusCode).json({

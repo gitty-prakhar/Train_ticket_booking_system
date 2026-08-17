@@ -7,9 +7,9 @@ const redisClient=process.env.REDIS_URL?new Redis(process.env.REDIS_URL):new Red
 
 export const tatkalRateLimiter=rateLimit({
     windowMs:60*1000, //1 minute window
-    max:5, //Limit each IP to 5 requests per `windowMs`
-    standardHeaders:true, //Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders:false, //Disable the `X-RateLimit-*` headers
+    max:5, //limit each IP to 5 requests per `windowMs`
+    standardHeaders:true, //return rate limit info in the `RateLimit-*` headers
+    legacyHeaders:false, //disable the `X-RateLimit-*` headers
     store:new RedisStore({
         sendCommand:(...args)=>redisClient.call(...args),
     }),
@@ -17,7 +17,7 @@ export const tatkalRateLimiter=rateLimit({
         res.status(429).json({
             success:false,
             message:"Too many booking attempts from this IP. Please try again after a minute.",
-            data: null
+            data:null
         });
     }
 });
