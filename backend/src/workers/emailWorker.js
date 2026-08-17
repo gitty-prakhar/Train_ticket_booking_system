@@ -6,9 +6,7 @@ import { uploadPdfToS3 } from "../utils/s3Uploader.js";
 import { Resend } from "resend";
 
 //store the email sending job in redis
-const redisConnection=process.env.REDIS_URL 
-    ?new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:null}) 
-    :new Redis({host:"127.0.0.1",port:6379,maxRetriesPerRequest:null});
+const redisConnection=process.env.REDIS_URL?new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:null}):new Redis({host:"127.0.0.1",port:6379,maxRetriesPerRequest:null});
 
 const resend=new Resend(process.env.RESEND_API_KEY);
 
@@ -66,7 +64,7 @@ export const emailWorker=new Worker(
                 throw new Error(error.message);
             }
 
-            console.log(`✅ Email sent successfully to ${email}${attachments.length ? " (with PDF attachment)" : ""}`);
+            console.log(`✅ Email sent successfully to ${email}${attachments.length?" (with PDF attachment)":""}`);
         } 
         catch(err){
             console.error("Failed to send email via Resend:",err);

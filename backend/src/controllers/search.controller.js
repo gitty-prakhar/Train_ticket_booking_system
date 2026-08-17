@@ -14,31 +14,31 @@ import { getDistanceBetweenStops } from "../utils/fareCalculator.js";
  * Convert "HH:MM" departure time string to total minutes since midnight.
  * Returns null if the string is invalid.
  */
-function timeToMinutes(timeStr) {
-    if (!timeStr) return null;
-    const [h, m] = timeStr.split(":").map(Number);
-    if (isNaN(h) || isNaN(m)) return null;
-    return h * 60 + m;
+function timeToMinutes(timeStr){
+    if(!timeStr) return null;
+    const[h,m]=timeStr.split(":").map(Number);
+    if(isNaN(h)||isNaN(m)) return null;
+    return h*60+m;
 }
 
 /**
  * Build the coaches availability map grouped by coachType for a given scheduleId.
  * Computes fare per person based on distanceKm.
  */
-async function buildClassMap(scheduleId, distanceKm) {
-    const coaches = await Coach.find({ scheduleId });
-    const classMap = {};
-    for (const coach of coaches) {
-        if (!classMap[coach.coachType]) {
-            classMap[coach.coachType] = {
-                coachType:      coach.coachType,
-                availableSeats: 0,
-                totalSeats:     0,
-                farePerPerson:  calculateFare(distanceKm || 0, coach.coachType),
+async function buildClassMap(scheduleId,distanceKm){
+    const coaches=await Coach.find({scheduleId});
+    const classMap={};
+    for(const coach of coaches){
+        if(!classMap[coach.coachType]){
+            classMap[coach.coachType]={
+                coachType:coach.coachType,
+                availableSeats:0,
+                totalSeats:0,
+                farePerPerson:calculateFare(distanceKm||0,coach.coachType),
             };
         }
-        classMap[coach.coachType].availableSeats += coach.availableSeats;
-        classMap[coach.coachType].totalSeats      += coach.totalSeats;
+        classMap[coach.coachType].availableSeats+=coach.availableSeats;
+        classMap[coach.coachType].totalSeats+=coach.totalSeats;
     }
     return Object.values(classMap);
 }
@@ -49,29 +49,29 @@ async function buildClassMap(scheduleId, distanceKm) {
  *
  * @returns array of { route, schedule, stop }
  */
-async function getRouteSchedulesByStation(stationId, date) {
-    const nextDay = new Date(date);
-    nextDay.setDate(nextDay.getDate() + 1);
+async function getRouteSchedulesByStation(stationId,date){
+    const nextDay=new Date(date);
+    nextDay.setDate(nextDay.getDate()+1);
 
-    const routes = await Route.find({ "stops.stationId": stationId }).populate("stops.stationId", "name code");
+    const routes=await Route.find({"stops.stationId":stationId}).populate("stops.stationId","name code");
 
-    const trainIds    = routes.map((r) => r.trainId);
-    const schedules   = await Schedule.find({
-        trainId:     { $in: trainIds },
-        journeyDate: { $gte: date, $lt: nextDay },
-        status:      { $ne: "Cancelled" },
-    }).populate("trainId", "trainNumber trainName trainType");
+    const trainIds=routes.map((r)=>r.trainId);
+    const schedules=await Schedule.find({
+        trainId:{$in:trainIds},
+        journeyDate:{$gte:date,$lt:nextDay},
+        status:{$ne:"Cancelled"},
+    }).populate("trainId","trainNumber trainName trainType");
 
     // Index schedules by trainId for fast lookup
-    const scheduleMap = {};
-    for (const s of schedules) scheduleMap[s.trainId._id.toString()] = s;
+    const scheduleMap={};
+    for (const s of schedules)scheduleMap[s.trainId._id.toString()]=s;
 
     return routes
-        .map((route) => ({
+        .map((route)=>({
             route,
-            schedule: scheduleMap[route.trainId.toString()],
+            schedule:scheduleMap[route.trainId.toString()],
         }))
-        .filter((r) => r.schedule); // only routes that have a schedule on this date
+        .filter((r)=>r.schedule); // only routes that have a schedule on this date
 }
 
 // ─── CONNECTING TRAINS ALGORITHM ────────────────────────────────────────────
