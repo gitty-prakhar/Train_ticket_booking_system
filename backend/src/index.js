@@ -13,6 +13,8 @@ import "./workers/waitlistWorker.js";
 import "./workers/whatsappWorker.js";
 
 //connect database
+//connect DB returns a promise because it is an asynchronous function
+//and we need to wait for the database to be connected before starting the server
 connectDB()
 .then(()=>{
     let port=process.env.PORT||8000; //port is set to 8000 if process.env.PORT is not defined
