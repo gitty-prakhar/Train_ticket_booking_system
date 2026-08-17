@@ -20,27 +20,27 @@ const createOrder=asyncHandler(async(req,res)=>{
         throw new ApiError(403,"This is not your booking");
     }
 
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId=process.env.RAZORPAY_KEY_ID;
+    const keySecret=process.env.RAZORPAY_KEY_SECRET;
 
     // Create fresh Razorpay instance with current env vars
-    const razorpayInstance = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret,
+    const razorpayInstance=new Razorpay({
+        key_id:keyId,
+        key_secret:keySecret,
     });
 
     //create order on razorpay
-    const order = await razorpayInstance.orders.create({
-        amount: booking.totalFare * 100,   //razorpay expects amount in paise
-        currency: "INR",
-        receipt: booking.pnr
+    const order=await razorpayInstance.orders.create({
+        amount:booking.totalFare*100,   //razorpay expects amount in paise
+        currency:"INR",
+        receipt:booking.pnr
     });
 
     //save order id
     await Payment.findByIdAndUpdate(
         booking.paymentId,
         {
-            gatewayOrderId: order.id
+            gatewayOrderId:order.id
         }
     );
 
@@ -48,11 +48,11 @@ const createOrder=asyncHandler(async(req,res)=>{
         new APIResponse(
             200,
             {
-                orderId: order.id,
-                amount: order.amount,
-                currency: order.currency,
-                pnr: booking.pnr,
-                keyId: keyId
+                orderId:order.id,
+                amount:order.amount,
+                currency:order.currency,
+                pnr:booking.pnr,
+                keyId:keyId
             },
             "Razorpay order created"
         )
