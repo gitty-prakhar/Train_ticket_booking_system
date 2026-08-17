@@ -5,7 +5,7 @@ import twilio from "twilio";
 const clients=twilio(process.env.TWILIO_ACCOUNT_SID,process.env.TWILIO_AUTH_TOKEN);
 
 export const handleIncomingMessage=asyncHandler(async(req,res)=>{
-    //Twilio sends the text in 'Body' and the sender's number in 'From'
+    //twilio sends the text in 'Body' and the sender's number in 'From'
     const incomingText=req.body.Body||"";
     const senderNumber=req.body.From;
 

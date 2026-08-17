@@ -59,7 +59,7 @@ const lockSeats=asyncHandler(async(req,res)=>{
     const lockExpiresAt=new Date(Date.now()+600*1000); //10 min from now
 
     await Seat.updateMany(
-        { _id:{$in:seatIds}},
+        {_id:{$in:seatIds}},
         {
             status:"Locked",
             lockedBy:req.user._id,
