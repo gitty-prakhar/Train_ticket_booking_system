@@ -17,4 +17,5 @@ const connectDB=async()=>{
     }
 }
 
+//exports the connectDB function to be used in other files
 export default connectDB;
